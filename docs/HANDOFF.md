@@ -1,6 +1,8 @@
 # 交接文件：Portfolio News Monitor（澳股持股組合新聞監測器）
 
-最後更新：2026-10-24。對象：接手這個專案的下一段 Claude Code 對話。
+最後更新：2026-10-27。對象：接手這個專案的下一段 Claude Code 對話。
+
+**接手前先看**：上一段對話（2026-10-24 到 2026-10-27）做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下「抓文章」「前端」「前後端連線」三區還沒查，見第 6 節。那段對話**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」，建議先做。
 
 ## 1. 這是什麼、為什麼做
 
@@ -49,7 +51,7 @@ backend/
   app/main.py                路由 /api/health、/api/tickers、/api/article、/api/analyze
   data/asx_companies.csv     ASX 官方清單，約 2,051 家
   scripts/build_asx_list.py  從 asx.com.au 重新產生 CSV，ALIASES 字典放常見俗稱
-  tests/                     test_aggregate / test_asx / test_finbert_engine / test_claude_engine / test_api
+  tests/                     test_aggregate / test_asx / test_finbert_engine / test_claude_engine / test_article / test_api
   .env                       使用者的 ANTHROPIC_API_KEY（已被 gitignore）
   .env.example
 frontend/
@@ -58,6 +60,9 @@ frontend/
   src/lib/gauge.ts(+test)    儀表盤幾何與分區
   src/lib/api.ts             型別與 fetch
   src/lib/history.ts(+test)  歷史紀錄去重、分數顯示文字、待查公司名稱（純函式）
+  src/lib/holdings.ts(+test) 哪些持股列算數（有代號才算）、權重總和、送出前的持股檢查（純函式）
+  src/lib/assessment.ts(+test) 「Not assessed／Not affected」標籤與「Claude skipped …」提醒文字（純函式）
+  src/lib/format.ts          百分比與時間的顯示格式
   src/lib/storage.ts         localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch
   src/lib/examples.ts        3 則虛構範例新聞
   src/styles.css             設計 token、亮暗主題、RWD
@@ -70,7 +75,7 @@ README.md
 
 ## 4. 核心邏輯（不要隨意改變語意）
 
-1. 每個引擎對每檔持股回傳 `HoldingSentiment`：`relevant` 與三類機率（總和為 1）。
+1. 每個引擎對每檔持股回傳 `HoldingSentiment`：`relevant`、`assessed`（引擎有沒有回這檔，預設 true）與三類機率（總和為 1）。
 2. 使用者輸入的權重總和偏離 100 超過 0.5 個百分點時，按比例縮放並回傳 `weights_adjusted=true`。
 3. **無關的持股排除不算**（使用者的決定），相關持股的權重重新分配成總和 1。
 4. 組合機率 = 加權平均。`score = 50 + 50 × (bull − bear)`，.5 一律進位（60.5 → 61，使用者 2026-10-24 決定）。
@@ -81,7 +86,7 @@ README.md
 ### Claude 引擎
 - 使用 `client.beta.messages.parse(output_format=ClaudeAnalysis, output_config={"effort":"low"}, betas=["server-side-fallback-2026-07-01"], fallbacks="default")`。
 - 模型預設 `claude-opus-5-5`，可用 `CLAUDE_MODEL` 覆蓋。anthropic SDK 版本是 1.17.0。
-- Schema 刻意不放數值上下限，改在後端 clamp 並重新正規化。不在輸入清單內的 ticker 丟掉，缺少的 ticker 視為無關。
+- Schema 刻意不放數值上下限，改在後端 clamp 並重新正規化。不在輸入清單內的 ticker 丟掉，缺少的 ticker 標成 `assessed=false`（見下方）。
 - `stop_reason == "refusal"` 會丟出 EngineError；`parsed_output` 為 None，或回答裡沒有任何一檔輸入的持股時，重試 1 次，再失敗就顯示錯誤（不會顯示成 Unrelated）。
 - Claude 回傳的 ticker 會先去掉 `.AX`、`ASX:` 再比對。漏掉的持股標成 `assessed=false`，一樣不算進分數，但畫面顯示「Not assessed」並在結果上方提醒，不會說成「Not affected」。舊的歷史紀錄沒有這個欄位，前端視為 `true`。
 - API 錯誤各有訊息：逾時、連線失敗、key 錯誤、限流、5xx／529（忙碌）、404（`CLAUDE_MODEL` 打錯）；其他 4xx 附上 API 自己的說明。
@@ -94,7 +99,7 @@ README.md
 - 超過 200 個字的段落只取第一次提到公司的前後各 100 個字，避免 FinBERT 的 512 token 上限把提及處截掉。
 - 比對規則在 `asx.mentions()`（`asx.find_mention()` 另外回傳位置）：
   - ticker 必須大寫、完整單字比對。
-  - **容易和一般英文單字混淆的 ticker**（`CAR`、`WOW`、`ORG`、`ALL`、`ASX` 等，見 `_AMBIGUOUS_TICKERS`）必須帶交易所標記，例如 `ASX: CAR` 或 `CAR.AX`。
+  - **容易和一般英文單字或新聞縮寫混淆的 ticker**（`CAR`、`WOW`、`ORG`、`AFL`、`NRL`、`SPP`、`CPU` 等 69 個，見 `_AMBIGUOUS_TICKERS`）必須帶交易所標記，例如 `ASX: CAR` 或 `CAR.AX`。
   - 公司名稱與別名**區分大小寫**，另外接受全大寫的標題寫法，例如「Origin」會比對，「origin」不會。直撇號與彎撇號（`'`／`’`）都算。
   - **長得像公司名的地名與賽事**（`_LOOKALIKES`，例如 `State of Origin`、`Port Macquarie`、`Rio de Janeiro`、`Santos FC`）會先從文字中挖掉再比對，所以同一句裡真的提到公司時仍然算。這份清單只能逐條補。已知擋不到：人名（例如「Sarah Goodman」會比對到 Goodman Group）、沒寫 FC 的球隊名（「Santos beat Corinthians」）。
 
@@ -107,15 +112,20 @@ README.md
   `cd backend && .venv/bin/uvicorn app.main:app --port 8000`
 - 前端可以用 `preview_start` 啟動，設定名稱是 `frontend`，設定檔在專案上一層資料夾的 `.claude/launch.json`，注意不在專案資料夾裡。其中的 `backend` 設定在這台電腦上會失敗。
 - 前端開發伺服器把 `/api` 代理到 `:8000`。後端沒開時，代理會回 500，前端會顯示「Make sure the backend is running on port 8000」。
-- 目前前後端都在執行，但那是上一段對話的背景程序，接手時請先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認。
+- 上一段對話結束時，前後端**都沒有在執行**。接手時先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認，沒有就照上面的方式啟動。使用者自己則是用 VS Code 的 **Start app** 任務啟動（見 `docs/WORKFLOW.md`）。
 - **API key** 在 `backend/.env`。**絕對不要印出或複述 key 的內容**；要檢查格式時只看長度與前綴（`sk-ant-`）。
 - 沒有安裝 Docker，所以原計畫中的 docker-compose 刻意沒做（不附沒驗證過的設定）。
 - 已用 Homebrew 安裝 `gh` 並登入 Trayast0229，git 透過它以 https 推送。這個 repo 的 `user.email` 設為 GitHub 隱私信箱 `344183369+Trayast0229@users.noreply.github.com`，不要改回個人信箱。commit 後用 `git push` 上傳。
 
-## 6. 已知小問題與可以做的下一步（尚未做，等使用者決定）
+## 6. 系統性除錯進度與下一步
 
-### 下一階段：系統性除錯（使用者 2026-10-24 決定）
-每個 bug 先重現、寫出會失敗的測試，再修，每個單獨 commit。進度如下（2026-10-24）：
+每個 bug 先重現、寫出會失敗的測試，再修，每個單獨 commit。進度如下（2026-10-27）：
+
+**待瀏覽器確認**（上一段對話沒有瀏覽器工具，以下只用測試與 build 驗證過）
+- 持股編輯器：清空某列代號但保留權重時，「Total」應該跟著變少並提示會縮放。
+- 某檔權重打 150 按 Analyze，應顯示「Keep each weight at 100% or less.」。
+- 只勾 FinBERT，貼「BHP shares surged to a record and CBA shares plunged after a profit warning.」（前面補一句湊滿 50 字），兩檔的原因後面都應出現「A sentence used here also names …」提醒。
+- 「Not assessed」狀態與「Claude skipped …」提醒：真實 Claude 很少漏回持股，不容易在瀏覽器重現；後端已用模擬回答驗證 API 回傳正確。
 
 **已完成**（細節見 `git log`，規則已寫進第 4 節）
 - **評分邊界**：前後端分區一致；權重總和 99.5／100.5 視為 100；30 檔上限正常。修正：編輯器總和不算沒填代號的列、前端擋下權重 >100、.5 一律進位。
@@ -133,7 +143,7 @@ README.md
 - **前端**：localStorage 資料損壞或被清空時能否正常開啟；歷史紀錄滿 20 筆；快速連按 Analyze 或 Fetch；鍵盤操作與螢幕閱讀器標籤；手機寬度。
 - **前後端連線**：後端沒開、分析途中後端重啟時的錯誤訊息。
 
-
+### 其他備註
 - 開發模式的 React StrictMode 會讓請求發兩次，只發生在開發環境，不影響正式版。
 - 分數不用 Python 的 `round()`（銀行家捨入，60.5 會變成 60）。`score_from_probs()` 先取到小數 9 位消掉浮點誤差（22.5 可能算成 22.4999…），再 .5 進位。分數一律由後端計算，前端不重算。
 - 可能的功能延伸（計畫中列為非目標）：部署上線（例如前端 Vercel、後端 Render 或 Hugging Face Spaces）、docker-compose、即時股價、更多範例新聞。部署時注意 `/api/article` 會替使用者抓網頁，已擋內部位址，但仍建議加上速率限制。
@@ -148,6 +158,13 @@ README.md
 ```
 
 端到端測試：啟動前後端，打開 http://localhost:5173，點範例新聞後按 Analyze。兩個引擎都勾選時，右上角會出現切換按鈕。
+
+### 除錯時好用的做法與踩過的坑
+- **不靠模型也能測 API**：用 FastAPI 的 `TestClient`，把 `app.state.engines` 換成假引擎；`tests/test_claude_engine.py` 的 `fake_client()`、`reply()`、`analysis()` 可以直接拿來模擬 Claude 的各種回答與 API 錯誤。腳本放專案外時要加 `PYTHONPATH=.`（在 `backend/` 執行）。
+- **用真實 FinBERT 驗證**：模型已在本機快取，`cd backend && HF_HUB_OFFLINE=1 PYTHONPATH=. .venv/bin/python ...`，載入約幾秒。修 FinBERT 的 bug 時，測試用假分類器，修完再用真模型確認一次。
+- **用真實 Claude 驗證錯誤訊息**：模型名稱打錯（404）與錯誤 key（401）不會產生費用。腳本裡用 `load_dotenv(".env")` 明確指定路徑；`load_dotenv()` 會從腳本所在資料夾找，放在專案外會讀不到 key。
+- `backend/data/asx_companies.csv` 是 **CRLF 換行**（Python csv 模組預設），用 `sed` 比對整行會失敗，要用 Python 讀寫 bytes。改別名時 `scripts/build_asx_list.py` 的 `ALIASES` 與 CSV 兩邊都要改。
+- zsh 會把 `--include=*.py` 和 `echo =====` 當成特殊語法而報錯，前者加引號，後者別用。
 
 ## 8. 參考來源
 
