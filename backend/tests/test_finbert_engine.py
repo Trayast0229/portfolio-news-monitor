@@ -1,6 +1,9 @@
+import importlib.util
+
 import pytest
 
 from app.asx import resolve
+from app.engines.base import EngineError
 from app.engines.finbert_engine import FinbertEngine, split_sentences
 from app.models import HoldingIn
 
@@ -182,3 +185,13 @@ async def test_no_mentions_skips_the_model():
 
 def test_status_reports_loaded_classifier():
     assert FinbertEngine(classifier=fake_classifier).status() == "ready"
+
+
+async def test_missing_finbert_is_an_error_even_when_no_company_is_named(monkeypatch):
+    # Otherwise the app shows "Not related", as if FinBERT had read the story.
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name, *a: None if name == "torch" else real(name, *a))
+    engine = FinbertEngine()
+    assert engine.status() == "unavailable"
+    with pytest.raises(EngineError, match="isn't installed"):
+        await engine.analyze("Iron ore prices fell sharply overnight on weaker Chinese demand.", holdings("BHP", "CBA"))

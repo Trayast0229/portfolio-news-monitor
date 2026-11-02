@@ -17,6 +17,7 @@ from ..models import EngineResult, HoldingSentiment, ResolvedHolding
 from .base import EngineError, EngineStatus
 
 MODEL_ID = "ProsusAI/finbert"
+_NOT_INSTALLED = "FinBERT isn't installed. In backend, run: uv pip install -e '.[finbert]'"
 _MAX_QUOTED = 2
 _MAX_QUOTE_CHARS = 220
 # FinBERT reads at most 512 tokens. 200 words leaves room for numbers and rare
@@ -97,7 +98,7 @@ class FinbertEngine:
         with self._lock:
             if self._classifier is None:
                 if self.status() == "unavailable":
-                    raise EngineError("FinBERT isn't installed. Run: pip install -e '.[finbert]'")
+                    raise EngineError(_NOT_INSTALLED)
                 from transformers import pipeline
 
                 pipe = pipeline("text-classification", model=MODEL_ID, top_k=None, truncation=True)
@@ -108,6 +109,10 @@ class FinbertEngine:
         return await asyncio.to_thread(self._analyze_sync, news, holdings)
 
     def _analyze_sync(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
+        # Check before matching: a story that names no holding never loads the model,
+        # and would otherwise come back "Not related" without FinBERT reading it.
+        if self.status() == "unavailable":
+            raise EngineError(_NOT_INSTALLED)
         sentences = split_sentences(news)
         hits = {h.ticker: [_focus(_passage(s, h, holdings), h) for s in sentences if mentions(s, h)] for h in holdings}
         to_score = list(dict.fromkeys(s for found in hits.values() for s in found))
