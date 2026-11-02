@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import anthropic
 import httpx
+import pydantic
 import pytest
 
 from app.asx import resolve
@@ -30,6 +31,14 @@ def fake_client(*responses):
 
 def reply(analysis, stop_reason="end_turn"):
     return SimpleNamespace(stop_reason=stop_reason, parsed_output=analysis)
+
+
+def unparseable():
+    """What the real SDK raises when Claude's text doesn't fit the schema (it doesn't return parsed_output=None)."""
+    try:
+        ClaudeAnalysis.model_validate_json('{"holdings": [')
+    except pydantic.ValidationError as exc:
+        return exc
 
 
 def analysis(*holdings, **extras):
@@ -125,6 +134,19 @@ async def test_unparseable_output_is_retried_once():
 async def test_unparseable_output_twice_raises():
     client, _ = fake_client(reply(None), reply(None))
     with pytest.raises(EngineError):
+        await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+
+
+async def test_output_the_sdk_cannot_parse_is_retried_once():
+    client, messages = fake_client(unparseable(), reply(analysis(ch("BHP"), ch("CBA"))))
+    result = await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+    assert len(messages.calls) == 2
+    assert [h.ticker for h in result.per_holding] == ["BHP", "CBA"]
+
+
+async def test_output_the_sdk_cannot_parse_twice_says_so():
+    client, _ = fake_client(unparseable(), unparseable())
+    with pytest.raises(EngineError, match="didn't match"):
         await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
 
 

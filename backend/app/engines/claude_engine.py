@@ -9,7 +9,7 @@ import os
 from typing import Literal
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..models import EngineResult, HoldingSentiment, ResolvedHolding
 from .base import EngineError, EngineStatus
@@ -90,6 +90,8 @@ class ClaudeEngine:
         parsed = None
         for _ in range(2):  # one retry if the output doesn't fit the schema or skips every holding
             response = await self._call(client, prompt)
+            if response is None:  # the SDK couldn't fit the text to the schema
+                continue
             if response.stop_reason == "refusal":
                 raise EngineError("Claude declined to analyze this article.")
             parsed = response.parsed_output
@@ -102,6 +104,11 @@ class ClaudeEngine:
         return _to_result(parsed, holdings)
 
     async def _call(self, client, prompt: str):
+        """The parsed response, or None when Claude's text doesn't fit the schema.
+
+        The SDK raises ValidationError for that case (cut-off or malformed JSON)
+        rather than returning parsed_output=None, so it's caught here to retry.
+        """
         try:
             return await client.beta.messages.parse(
                 model=self.model,
@@ -113,6 +120,8 @@ class ClaudeEngine:
                 betas=[_FALLBACK_BETA],
                 fallbacks="default",
             )
+        except ValidationError:
+            return None
         except anthropic.AuthenticationError as exc:
             raise EngineError("Your Claude API key was rejected. Check ANTHROPIC_API_KEY.") from exc
         except anthropic.RateLimitError as exc:
