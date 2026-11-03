@@ -45,6 +45,7 @@ try {
   if (!exposure?.startsWith("Affects 30%")) fail(`exposure line was "${exposure}"`);
 
   const saved = await page.evaluate(`JSON.parse(localStorage.getItem("pnm.history") ?? "[]")`);
+  await page.click(".history-toggle"); // Recent analyses starts collapsed
   const listed = await page.text(".history li");
   if (saved.length !== 1 || saved[0].news !== news.trim()) fail(`saved history was ${JSON.stringify(saved).slice(0, 200)}`);
   if (!listed?.includes("FinBERT")) fail(`history list showed "${listed}"`);

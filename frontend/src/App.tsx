@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bolt } from "./components/Bolt";
 import { EnginePicker } from "./components/EnginePicker";
-import { HistoryList } from "./components/HistoryList";
+import { HistoryList, HistoryToggle } from "./components/HistoryList";
 import { HoldingsEditor } from "./components/HoldingsEditor";
 import { ResultPanel } from "./components/ResultPanel";
 import {
@@ -54,6 +54,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [fetched, setFetched] = useState<{ url: string; text: string } | null>(null);
   // Lets a slow reply notice that the form moved on. Any edit makes a pending
   // fetch stale; only swapping in a whole new story makes a pending analysis stale.
@@ -142,6 +143,7 @@ export default function App() {
     setFetchNote(null);
     setShown({ news: entry.news, response: entry.response });
     setError(null);
+    setHistoryOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -154,7 +156,19 @@ export default function App() {
           </span>
           Portfolio News Monitor
         </h1>
+        <HistoryToggle count={history.length} open={historyOpen} onToggle={() => setHistoryOpen((o) => !o)} />
       </header>
+
+      {historyOpen && history.length > 0 && (
+        <HistoryList
+          entries={history}
+          onOpen={openHistory}
+          onClear={() => {
+            setHistory(clearHistory());
+            setHistoryOpen(false);
+          }}
+        />
+      )}
 
       <main className="layout">
         <section className="card holdings-card">
@@ -237,8 +251,6 @@ export default function App() {
 
         <ResultPanel response={shown?.response ?? null} news={shown?.news ?? ""} loading={loading} />
       </main>
-
-      <HistoryList entries={history} onOpen={openHistory} onClear={() => setHistory(clearHistory())} />
 
       <footer className="footer">
         For research and education only. Not investment advice. ASX company list from asx.com.au.
