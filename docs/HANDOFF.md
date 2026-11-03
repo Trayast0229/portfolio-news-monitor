@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1、R2 已處理，**R3、R4、R6 修完並跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1、R2、R3 已處理，**R4、R6 修完並跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -153,7 +153,6 @@ README.md
 - 瀏覽器的 localStorage 寫入失敗（例如空間滿了）時，`addHistory` 每次都從存檔重建清單，這次工作階段先前的紀錄會從畫面上消失（Codex C9，已用模擬的 `setItem` 例外實測）。只存 20 筆，現代瀏覽器很難碰到。
 
 **Codex 上傳前審核找到、待修**（2026-11-03 Codex 審核還沒 push 的 22 個 commit，Claude 用 Codex 的腳本重跑確認。使用者同意以下嚴重度與順序）
-- **R3【低】`/verify` 的 `cleanup.sh` 只看 PID 檔**：驗證網站已經自己結束、PID 又被系統重用時，會關到別的程式（已用 Codex 自己開的 `sleep` 實測）。
 - **R4【低】HTML 註解裡的 `<meta charset>` 讓正確的編碼標頭失效**：`article.py` 的 `META_CHARSET` 直接搜尋原始 bytes，註解裡的 meta 也算，交給 trafilatura 猜成別的編碼（`crème` → `crčme`，已實測）。
 - **R6【低】`/verify` 的 `cdp.mjs` 在 Chrome 分頁當掉時永遠等待**：`waitFor()` 等 `Runtime.evaluate` 回應時沒有時間上限（看程式碼確認，Codex 用真 Chrome 重現）。只影響開發用的驗證工具。
 
@@ -204,7 +203,7 @@ README.md
 - **MockTransport 的 `httpx.Response(content=...)` 會在建立時就讀完並解壓縮內容**，所以 `test_article.py` 的 `fetch()` 先經過 `unread()` 改成未讀的 stream，壓縮的假網頁用 `packed()` 直接給原始 bytes；不然炸彈在測試裡就先解開了，`aiter_raw()` 也會丟 `StreamConsumed`。
 - **用真實連線測抓文章**：在腳本裡用 `http.server` 開本機伺服器，回想測的標頭與內容（編碼、轉址、送一半就停），並把 `article._check_public` 暫時換成什麼都不做的函式，因為本機位址會被擋。MockTransport 會跳過 httpx 底層的檢查，結論可能不一樣（第 7 項就是這樣撤回的）。
 - **後端的同步計算會卡住整台伺服器**：`async` 函式裡的解碼、trafilatura 抽文字都在事件迴圈上執行，`asyncio.timeout` 打斷不了。懷疑某段很慢時，另開一個每 0.1 秒跳一次的 task 量最長停頓（charset=punycode 就是這樣量出 59 秒）。
-- **用 `/verify` 在真瀏覽器操作網站**（2026-11-03 起）：`.claude/skills/verify/` 會在 8100／5174 開一份自己的網站（Claude 關閉、不花錢），用無頭 Chrome 點按鈕、打字並截圖，不碰使用者的 8000／5173。步驟、畫面元素的定位方式與 5 個功能的操作清單都在該資料夾的 `SKILL.md` 與 `features/`；證據存在系統暫存資料夾的 `pnm-verify-evidence/`。畫面改動修完後先自己跑一次，再請使用者在瀏覽器確認。
+- **用 `/verify` 在真瀏覽器操作網站**（2026-11-03 起）：`.claude/skills/verify/` 會在 8100／5174 開一份自己的網站（Claude 關閉、不花錢），用無頭 Chrome 點按鈕、打字並截圖，不碰使用者的 8000／5173。步驟、畫面元素的定位方式與 5 個功能的操作清單都在該資料夾的 `SKILL.md` 與 `features/`；證據存在系統暫存資料夾的 `pnm-verify-evidence/`。畫面改動修完後先自己跑一次，再請使用者在瀏覽器確認。`cleanup.sh` 關程式前會用 `ps` 比對指令內容（`signature()`：`uvicorn app.main:app --port 8100`、`vite.js --port 5174`、這次的 Chrome 設定檔），不符就跳過，避免 PID 被系統重用時關錯程式（Codex R3）；**改 `launch.sh` 的 port 或啟動參數時要同步改 `signature()`**，否則清理會跳過自己的程式並警告 port 仍被佔用。
 - **跑前端真程式**：`cd frontend && npx vite-node 腳本.ts` 可以直接 import `src/lib` 的函式；`fetch` 用的是相對路徑，要先把 `globalThis.fetch` 包一層補上本機伺服器網址。
 - zsh 會把 `--include=*.py` 和 `echo =====` 當成特殊語法而報錯，前者加引號，後者別用。
 
