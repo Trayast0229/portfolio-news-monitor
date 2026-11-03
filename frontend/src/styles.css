@@ -1,46 +1,54 @@
 :root {
-  --bg: #f4f6f8;
+  --bg: #f4f2ec;
   --surface: #ffffff;
-  --ink: #14161a;
-  --muted: #5d6470;
-  --line: #dfe3e8;
-  --field: #ffffff;
-  --focus: #2f6fd6;
+  --ink: #141413;
+  --muted: #6f6c64;
+  --line: #e3e0d8;
+  --line-strong: #c9c5bb;
+  --field: #f7f6f2;
+  --focus: #2f6bff;
 
-  --mint: #1f9d7a;
-  --mint-soft: #79c9ac;
-  --silver: #b7bcc4;
-  --grapefruit: #e0483f;
-  --grapefruit-soft: #f2948d;
+  /* Yellow is the one accent: primary button, logo, highlights. Text on it stays dark in both themes. */
+  --accent: #ffe135;
+  --accent-hover: #f5d400;
+  --on-accent: #141413;
 
-  --mint-text: #157a5e;
-  --grapefruit-text: #c0352d;
-  --notice-bg: #eef1f4;
-  --error-bg: #fdecea;
+  --mint: #2f7d57;
+  --mint-soft: #9cc8ad;
+  --silver: #cfcbc2;
+  --grapefruit: #b4473a;
+  --grapefruit-soft: #e3a99f;
 
-  --radius: 10px;
-  --font: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, sans-serif;
+  --mint-text: #2a7350;
+  --grapefruit-text: #a83f33;
+  --notice-bg: #efede6;
+  --error-bg: #f8e6e2;
+
+  --radius: 12px;
+  --font: "Inter", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14161a;
-    --surface: #1b1e23;
-    --ink: #eef0f3;
-    --muted: #a1a8b3;
-    --line: #2d3139;
-    --field: #22262c;
-    --focus: #6ea2ff;
-    --mint: #2fb58e;
-    --mint-soft: #2a7a64;
-    --silver: #5d636d;
-    --grapefruit: #f0625a;
-    --grapefruit-soft: #9c4943;
-    --mint-text: #4fd0a8;
-    --grapefruit-text: #ff8a82;
-    --notice-bg: #23272e;
-    --error-bg: #3a2220;
+    --bg: #121211;
+    --surface: #1c1c1a;
+    --ink: #f4f2ec;
+    --muted: #a8a49a;
+    --line: #2f2e2a;
+    --line-strong: #4a4842;
+    --field: #242421;
+    --focus: #7fa6ff;
+    --accent-hover: #ffe95c;
+    --mint: #4fae80;
+    --mint-soft: #2e6b4e;
+    --silver: #57544d;
+    --grapefruit: #d9675a;
+    --grapefruit-soft: #864038;
+    --mint-text: #6cc79a;
+    --grapefruit-text: #f08a7e;
+    --notice-bg: #262522;
+    --error-bg: #3a2420;
     color-scheme: dark;
   }
 }
@@ -60,9 +68,10 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -70,11 +79,12 @@ h2,
 h3 {
   margin: 0;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 h2 {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 h3 {
@@ -123,10 +133,29 @@ code {
   margin-bottom: 2rem;
 }
 
-.masthead h1 {
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 0.4em;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.logo svg {
+  width: 62%;
+  height: 62%;
 }
 
 .masthead p {
@@ -191,7 +220,13 @@ textarea {
 
 input:hover,
 textarea:hover {
-  border-color: var(--silver);
+  border-color: var(--line-strong);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--ink);
+  background: var(--surface);
 }
 
 textarea {
@@ -277,9 +312,16 @@ textarea {
   border: 0;
   background: none;
   padding: 0.25rem 0;
-  color: var(--focus);
+  color: var(--ink);
   font-weight: 600;
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.2em;
+}
+
+.text-button:hover {
+  text-decoration-color: currentColor;
 }
 
 .total-off {
@@ -303,7 +345,7 @@ textarea {
 }
 
 .chip:hover {
-  border-color: var(--silver);
+  border-color: var(--ink);
 }
 
 .news .small {
@@ -326,7 +368,7 @@ textarea {
 }
 
 .secondary {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
   background: var(--surface);
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -336,7 +378,7 @@ textarea {
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: var(--silver);
+  background: var(--notice-bg);
 }
 
 .secondary:disabled {
@@ -371,8 +413,13 @@ textarea {
   font-size: 0.875rem;
 }
 
+.engine-toggle:hover {
+  border-color: var(--line-strong);
+}
+
 .engine-toggle[aria-pressed="true"] {
   border-color: var(--ink);
+  box-shadow: inset 0 0 0 0.5px var(--ink);
 }
 
 .engine-check {
@@ -380,7 +427,7 @@ textarea {
   width: 1.125rem;
   height: 1.125rem;
   margin-top: 0.125rem;
-  border: 1.5px solid var(--silver);
+  border: 1.5px solid var(--line-strong);
   border-radius: 4px;
 }
 
@@ -405,13 +452,17 @@ textarea {
 
 .primary {
   border: 0;
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 600;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
   font-size: 1.0625rem;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   cursor: pointer;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 .primary:disabled {
@@ -464,7 +515,7 @@ textarea {
 }
 
 .gauge-hub {
-  fill: var(--ink);
+  fill: var(--surface);
   stroke: var(--silver);
   stroke-width: 5;
   transition: stroke 0.4s;
@@ -476,10 +527,10 @@ textarea {
 .gauge-hub.tone-bull-strong { stroke: var(--mint); }
 
 .gauge-score {
-  fill: var(--surface);
+  fill: var(--ink);
   font-size: 34px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .gauge-end {
@@ -489,7 +540,8 @@ textarea {
 
 .gauge-label {
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   font-size: 1.375rem;
   margin-top: 0.25rem;
   color: var(--muted);
@@ -543,6 +595,7 @@ textarea {
 
 .engine-switch button[aria-selected="true"] {
   background: var(--notice-bg);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 
 .result-empty {
@@ -591,7 +644,8 @@ textarea {
 .verdict-probs dd {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
 

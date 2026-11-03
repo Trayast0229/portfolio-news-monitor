@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1030" viewBox="0 0 1440 1030" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <style>
+      .card { fill: #FFFFFF; stroke: #E3E0D8; stroke-width: 1; }
+      .title { font-size: 16px; font-weight: 700; fill: #141413; }
+      .text { font-size: 14px; fill: #141413; }
+      .muted { font-size: 12px; fill: #6F6C64; }
+      .field { fill: #F7F6F2; stroke: #E3E0D8; }
+      .tag { fill: #2F6BFF; }
+      .tagtext { font-family: 'PingFang TC', 'Heiti TC', sans-serif; font-size: 13px; fill: #FFFFFF; font-weight: 600; }
+      .zone { fill: none; stroke-width: 26; }
+    </style>
+    <symbol id="bolt" viewBox="0 0 24 24"><path d="M13.5 1.5 L3.5 13.5 H10.5 L9.5 22.5 L20.5 9.5 H13.5 Z"/></symbol>
+  </defs>
+
+  <!-- Page -->
+  <rect width="1440" height="1030" fill="#F4F2EC"/>
+
+  <!-- Header with history toggle -->
+  <rect x="48" y="38" width="32" height="32" rx="8" fill="#FFE135"/>
+  <use href="#bolt" x="54" y="44" width="20" height="20" fill="#141413"/>
+  <text x="92" y="62" font-size="22" font-weight="800" letter-spacing="-0.5" fill="#141413">Portfolio News Monitor</text>
+  <rect x="1168" y="34" width="224" height="40" rx="20" fill="#141413"/>
+  <text x="1194" y="59" font-size="14" font-weight="600" fill="#FFFFFF">Recent analyses</text>
+  <rect x="1322" y="44" width="26" height="20" rx="10" fill="#FFE135"/>
+  <text x="1335" y="58" font-size="12" font-weight="700" fill="#141413" text-anchor="middle">3</text>
+  <text x="1366" y="59" font-size="14" fill="#FFFFFF">▾</text>
+
+  <!-- History drawer (shown open) -->
+  <rect x="48" y="96" width="1344" height="72" rx="10" class="card" stroke-dasharray="6 4"/>
+  <rect x="68" y="110" width="372" height="44" rx="8" class="field"/>
+  <text x="84" y="137" class="text">Commonwealth Bank posted a record…</text>
+  <text x="424" y="137" font-size="13" font-weight="700" fill="#2F7D57" text-anchor="end">FinBERT 96</text>
+  <rect x="456" y="110" width="372" height="44" rx="8" class="field"/>
+  <text x="472" y="137" class="text">Iron ore slides on weak China demand…</text>
+  <text x="812" y="137" class="muted" text-anchor="end">Unrelated</text>
+  <rect x="844" y="110" width="372" height="44" rx="8" class="field"/>
+  <text x="860" y="137" class="text">CSL cuts full-year guidance…</text>
+  <text x="1200" y="137" font-size="13" font-weight="700" fill="#B4473A" text-anchor="end">FinBERT 2</text>
+  <text x="1368" y="137" font-size="13" fill="#2F6BFF" text-anchor="end">Clear</text>
+
+  <!-- Holdings (top left) -->
+  <rect x="48" y="196" width="440" height="240" rx="12" class="card"/>
+  <text x="72" y="232" class="title">Your holdings</text>
+  <text x="464" y="232" class="muted" text-anchor="end">Total 100%</text>
+  <text x="72" y="262" class="muted">ASX code</text>
+  <text x="336" y="262" class="muted">Weight</text>
+  <g>
+    <rect x="72" y="272" width="252" height="36" rx="6" class="field"/>
+    <text x="86" y="295" class="text" font-weight="700">BHP</text>
+    <text x="128" y="295" class="muted">BHP Group Limited</text>
+    <rect x="336" y="272" width="84" height="36" rx="6" class="field"/>
+    <text x="408" y="295" class="text" text-anchor="end">40</text>
+    <text x="428" y="295" class="muted">%</text>
+    <text x="452" y="295" class="muted">✕</text>
+  </g>
+  <g>
+    <rect x="72" y="316" width="252" height="36" rx="6" class="field"/>
+    <text x="86" y="339" class="text" font-weight="700">CBA</text>
+    <text x="128" y="339" class="muted">Commonwealth Bank</text>
+    <rect x="336" y="316" width="84" height="36" rx="6" class="field"/>
+    <text x="408" y="339" class="text" text-anchor="end">30</text>
+    <text x="428" y="339" class="muted">%</text>
+    <text x="452" y="339" class="muted">✕</text>
+  </g>
+  <g>
+    <rect x="72" y="360" width="252" height="36" rx="6" class="field"/>
+    <text x="86" y="383" class="text" font-weight="700">CSL</text>
+    <text x="128" y="383" class="muted">CSL Limited</text>
+    <rect x="336" y="360" width="84" height="36" rx="6" class="field"/>
+    <text x="408" y="383" class="text" text-anchor="end">30</text>
+    <text x="428" y="383" class="muted">%</text>
+    <text x="452" y="383" class="muted">✕</text>
+  </g>
+  <text x="72" y="422" font-size="13" font-weight="600" fill="#141413">+ Add holding</text>
+
+  <!-- Centre top: headline -->
+  <use href="#bolt" x="620" y="214" width="200" height="200" fill="#FFE135" opacity="0.35"/>
+  <text x="720" y="290" font-size="34" font-weight="800" letter-spacing="-1" fill="#141413" text-anchor="middle">Efficiency</text>
+  <rect x="604" y="304" width="232" height="16" fill="#FFE135"/>
+  <text x="720" y="330" font-size="34" font-weight="800" letter-spacing="-1" fill="#141413" text-anchor="middle">drives progress.</text>
+  <text x="720" y="368" font-size="14" fill="#6F6C64" text-anchor="middle">Paste a story and see how it lands on your ASX portfolio.</text>
+
+  <!-- Engine + Analyze (top right) -->
+  <rect x="952" y="196" width="440" height="240" rx="12" class="card"/>
+  <text x="976" y="232" class="title">Engine</text>
+  <rect x="976" y="248" width="392" height="52" rx="8" fill="#FFFFFF" stroke="#141413" stroke-width="1.5"/>
+  <rect x="992" y="264" width="18" height="18" rx="4" fill="#141413"/>
+  <path d="M996 273 l4 4 l7 -8" stroke="#FFFFFF" stroke-width="2" fill="none"/>
+  <text x="1022" y="272" class="text" font-weight="700">FinBERT</text>
+  <text x="1022" y="290" class="muted">Free. Scores sentences that name your companies.</text>
+  <rect x="976" y="308" width="392" height="52" rx="8" fill="#F7F6F2" stroke="#E3E0D8"/>
+  <rect x="992" y="324" width="18" height="18" rx="4" fill="#FFFFFF" stroke="#C9C5BB"/>
+  <text x="1022" y="332" class="text" font-weight="700" fill="#9C988E">Claude</text>
+  <text x="1022" y="350" class="muted">Available when you run the project locally.</text>
+  <rect x="976" y="374" width="392" height="46" rx="8" fill="#FFE135"/>
+  <use href="#bolt" x="1128" y="387" width="20" height="20" fill="#141413"/>
+  <text x="1182" y="403" font-size="15" font-weight="800" fill="#141413" text-anchor="middle">Analyze</text>
+
+  <!-- News + link (left of gauge) -->
+  <rect x="48" y="460" width="440" height="496" rx="12" class="card"/>
+  <text x="72" y="496" class="title">News story</text>
+  <rect x="72" y="512" width="300" height="40" rx="6" class="field"/>
+  <text x="86" y="537" class="muted">Paste a link to a news article</text>
+  <rect x="384" y="512" width="80" height="40" rx="6" fill="#FFFFFF" stroke="#141413"/>
+  <text x="424" y="537" class="text" font-weight="600" text-anchor="middle">Fetch</text>
+  <rect x="72" y="566" width="392" height="250" rx="6" class="field"/>
+  <text x="86" y="594" class="text">Commonwealth Bank posted a record first-half</text>
+  <text x="86" y="616" class="text">cash profit of A$5.3 billion, beating analyst</text>
+  <text x="86" y="638" class="text">forecasts, as lower funding costs lifted its</text>
+  <text x="86" y="660" class="text">net interest margin. CommBank also raised its</text>
+  <text x="86" y="682" class="text">interim dividend…</text>
+  <text x="72" y="846" class="muted">Try a sample:</text>
+  <rect x="160" y="830" width="112" height="26" rx="13" fill="#FFFFFF" stroke="#E3E0D8"/>
+  <text x="216" y="847" font-size="12" fill="#141413" text-anchor="middle">Iron ore slides</text>
+  <rect x="280" y="830" width="168" height="26" rx="13" fill="#FFE135" stroke="#FFE135"/>
+  <text x="364" y="847" font-size="12" fill="#141413" text-anchor="middle">CommBank record profit</text>
+  <rect x="160" y="864" width="124" height="26" rx="13" fill="#FFFFFF" stroke="#E3E0D8"/>
+  <text x="222" y="881" font-size="12" fill="#141413" text-anchor="middle">CSL cuts guidance</text>
+  <text x="72" y="932" class="muted">361 characters · Samples are made up for demonstration.</text>
+
+  <!-- Gauge (centre) -->
+  <rect x="512" y="460" width="416" height="496" rx="12" class="card"/>
+  <text x="536" y="496" class="title">Portfolio sentiment</text>
+  <use href="#bolt" x="886" y="480" width="20" height="20" fill="#FFE135" stroke="#141413" stroke-width="1"/>
+  <path class="zone" stroke="#E7C2B9" d="M580 700 A140 140 0 0 1 606.7 617.7"/>
+  <path class="zone" stroke="#F0DCD5" d="M606.7 617.7 A140 140 0 0 1 676.7 566.9"/>
+  <path class="zone" stroke="#E6E3DC" d="M676.7 566.9 A140 140 0 0 1 763.3 566.9"/>
+  <path class="zone" stroke="#D3E6DA" d="M763.3 566.9 A140 140 0 0 1 833.3 617.7"/>
+  <path class="zone" stroke="#2F7D57" d="M833.3 617.7 A140 140 0 0 1 860 700"/>
+  <line x1="720" y1="700" x2="829" y2="686" stroke="#141413" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="720" cy="700" r="44" fill="#FFFFFF" stroke="#2F7D57" stroke-width="4"/>
+  <text x="720" y="714" font-size="38" font-weight="800" letter-spacing="-1" fill="#141413" text-anchor="middle">96</text>
+  <text x="580" y="730" class="muted" text-anchor="middle">0</text>
+  <text x="860" y="730" class="muted" text-anchor="middle">100</text>
+  <text x="720" y="782" font-size="20" font-weight="700" fill="#2F7D57" text-anchor="middle">Strongly bullish</text>
+  <rect x="552" y="804" width="319" height="8" fill="#2F7D57"/>
+  <rect x="871" y="804" width="7" height="8" fill="#CFCBC2"/>
+  <rect x="878" y="804" width="10" height="8" fill="#B4473A"/>
+  <text x="552" y="836" class="muted">Bullish</text>
+  <text x="720" y="836" class="muted" text-anchor="middle">Neutral</text>
+  <text x="888" y="836" class="muted" text-anchor="end">Bearish</text>
+  <text x="552" y="862" font-size="20" font-weight="700" fill="#2F7D57">95%</text>
+  <text x="720" y="862" font-size="20" font-weight="700" fill="#141413" text-anchor="middle">2%</text>
+  <text x="888" y="862" font-size="20" font-weight="700" fill="#B4473A" text-anchor="end">3%</text>
+  <text x="720" y="910" font-size="13" fill="#6F6C64" text-anchor="middle">Affects 30% of your portfolio (1 of 3 holdings).</text>
+
+  <!-- Right of gauge: per-holding detail (suggested) -->
+  <rect x="952" y="460" width="440" height="496" rx="12" class="card"/>
+  <text x="976" y="496" class="title">By holding</text>
+  <text x="976" y="532" class="text" font-weight="700">CBA</text>
+  <text x="1016" y="532" class="muted">Commonwealth Bank · 30%</text>
+  <text x="1368" y="532" font-size="14" font-weight="700" fill="#2F7D57" text-anchor="end">96 Strongly bullish</text>
+  <rect x="976" y="544" width="372" height="6" fill="#2F7D57"/>
+  <rect x="1348" y="544" width="8" height="6" fill="#CFCBC2"/>
+  <rect x="1356" y="544" width="12" height="6" fill="#B4473A"/>
+  <text x="976" y="574" class="muted">“Commonwealth Bank posted a record first-half cash profit</text>
+  <text x="976" y="592" class="muted">of A$5.3 billion, beating analyst forecasts…” Confidence 95%.</text>
+  <line x1="976" y1="612" x2="1368" y2="612" stroke="#E3E0D8"/>
+  <text x="976" y="640" class="text" font-weight="700" fill="#9C988E">BHP</text>
+  <text x="1016" y="640" class="muted">BHP Group · 40%</text>
+  <text x="1368" y="640" class="muted" text-anchor="end">Not affected</text>
+  <text x="976" y="662" class="muted">Not mentioned in the article.</text>
+  <line x1="976" y1="682" x2="1368" y2="682" stroke="#E3E0D8"/>
+  <text x="976" y="710" class="text" font-weight="700" fill="#9C988E">CSL</text>
+  <text x="1016" y="710" class="muted">CSL Limited · 30%</text>
+  <text x="1368" y="710" class="muted" text-anchor="end">Not affected</text>
+  <text x="976" y="732" class="muted">Not mentioned in the article.</text>
+  <line x1="976" y1="752" x2="1368" y2="752" stroke="#E3E0D8"/>
+  <text x="976" y="784" class="text" font-weight="600">How this score was worked out  ›</text>
+
+  <text x="720" y="1000" class="muted" text-anchor="middle">For research and education only. Not investment advice. ASX company list from asx.com.au.</text>
+
+  <!-- Annotations (not part of the UI) -->
+  <g>
+    <rect x="48" y="80" width="290" height="24" rx="12" class="tag"/>
+    <text x="62" y="97" class="tagtext">① 歷史紀錄：最上面，右上按鈕展開／收起</text>
+    <rect x="48" y="182" width="190" height="24" rx="12" class="tag"/>
+    <text x="62" y="199" class="tagtext">② 持股＋權重（左上）</text>
+    <rect x="590" y="182" width="260" height="24" rx="12" class="tag"/>
+    <text x="604" y="199" class="tagtext">中間上方：標題「效率使人進步」</text>
+    <rect x="952" y="182" width="190" height="24" rx="12" class="tag"/>
+    <text x="966" y="199" class="tagtext">③ 引擎＋Analyze（右上）</text>
+    <rect x="48" y="446" width="200" height="24" rx="12" class="tag"/>
+    <text x="62" y="463" class="tagtext">④ 新聞＋連結（指標左邊）</text>
+    <rect x="512" y="446" width="140" height="24" rx="12" class="tag"/>
+    <text x="526" y="463" class="tagtext">⑤ 指標（正中間）</text>
+    <rect x="952" y="446" width="160" height="24" rx="12" class="tag"/>
+    <text x="966" y="463" class="tagtext">⑥ 各持股明細</text>
+  </g>
+</svg>

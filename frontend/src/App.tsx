@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Bolt } from "./components/Bolt";
 import { HistoryList } from "./components/HistoryList";
 import { HoldingsEditor } from "./components/HoldingsEditor";
 import { ResultPanel } from "./components/ResultPanel";
@@ -150,7 +151,12 @@ export default function App() {
   return (
     <div className="page">
       <header className="masthead">
-        <h1>Portfolio News Monitor</h1>
+        <h1 className="brand">
+          <span className="logo">
+            <Bolt />
+          </span>
+          Portfolio News Monitor
+        </h1>
         <p>Paste a news story and see whether it's good or bad for your ASX portfolio, weighted by what you hold.</p>
       </header>
 

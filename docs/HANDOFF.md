@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1–R4、R6 已處理，**跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1 步（風格）已 commit，下一步是第 2 步（版面）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -170,9 +170,36 @@ README.md
 
 已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。原列第 7 項「`Content-Length` 不是數字就回 500」在真實連線不會發生：httpx 0.28.1 底層的 h11 會先拒絕非數字的值（變成 `RemoteProtocolError`，已顯示成網站沒回應），重複的相同值（`38, 38`）會合併成一個數字；只有測試用的 `MockTransport` 會跳過這層檢查（2026-11-03 用本機 socket 伺服器實測）。
 
+**UI 改版（進行中，`redesign` 分支。使用者 2026-11-03 核准計畫並說「可以開始」）**
+
+使用者想在上線前重新設計畫面，設計語言參照 Ramp（使用者給的 Mobbin 連結要登入，403 打不開；ramp.com 只讀得到文字。現在的風格是照 Claude 對 Ramp 的印象：米白底、白卡片、細邊框、大量留白、粗而緊的大標題、數字放大。使用者想更貼近時可以請他貼截圖）。版面草圖在 `docs/design/layout-draft.svg`（藍色標籤是說明，不是畫面），開始前先看一次。
+
+版面（桌面寬度，CSS grid 3 欄 × 2 列，每塊一張卡片）：
+- 最上面：Logo（黃色方塊＋黑色閃電）＋「Portfolio News Monitor」；右上角黑色膠囊按鈕「Recent analyses (N) ▾」展開／收起歷史紀錄。
+- 第一列：左上「持股＋權重」；中上標題「Efficiency drives progress.」（使用者給的「效率使人進步」，因為介面是英文所以譯成英文；使用者若要中文再改）＋一句說明；右上「引擎選擇＋Analyze」。
+- 第二列：左「新聞＋連結」（連結、Fetch、文字框、範例、字數）；中「指標」（儀表盤、Strongly bullish、三類百分比、Affects X%）；右「各持股明細」（By holding、Claude 的 summary／key points、How this score was worked out）。
+- 閃電元素：Logo、標題背後淡黃色大閃電與黃色底線、Analyze 按鈕的閃電圖示、指標卡右上小閃電。主按鈕（Analyze）黃底黑字，重點色也是同一個黃色（草圖用 `#FFE135`）；次要按鈕是外框或黑色。
+- 不設計手機版（使用者決定）：螢幕窄時只讓區塊依序往下排，不壞掉即可。
+
+使用者已同意的決定：保留暗色模式（多定義一組暗色 token）；字型換成 Inter（第 1 步換完可再看）；歷史紀錄預設收起、按鈕顯示筆數、沒有紀錄時不顯示按鈕；在 `redesign` 分支做，全部做完、使用者在瀏覽器確認後再合併回 `main` 並 push。
+
+做法：`ResultPanel` 改成一次輸出兩張卡片（中間指標、右邊明細），共用「目前看哪個引擎」的狀態，不必把 state 往上搬；引擎選擇＋Analyze＋表單錯誤從 `App.tsx` 拆成 `EnginePicker.tsx`。保留 `/verify` 依賴的 `.result`、`.exposure`、指標 `svg[role=img]` 的 `aria-label`、各輸入框的 `aria-label`。評分邏輯、API、後端都不動。
+
+流程（使用者 2026-11-03 決定「全部設計完再來除錯」）：每步 Claude 自己跑全部測試、build 與 `/verify` 截圖，停下來請使用者在瀏覽器看一眼外觀，使用者說「commit」就各存一個 commit（方便單獨退回）。每步**不跑** `/pstack:blast-radius`。6 步都做完後，對整個 `redesign` 分支跑一次 `/pstack:blast-radius` 與 `/code-review low`，修找到的問題，使用者在瀏覽器完整測一輪，再合併回 `main`。第 5 步有新邏輯，照樣先寫測試。
+
+步驟：
+1. **（已完成）** 風格：配色 token（亮色＋暗色）、Inter 字型、黃色主按鈕／外框次要按鈕、Logo 閃電。版面先不動。檔案：`styles.css`、`index.html`、`App.tsx` 標題列。閃電圖案已先做成 `components/Bolt.tsx`（第 4 步直接沿用）。配色 token：`--accent`（黃）、`--accent-hover`、`--on-accent`（黃底上的字，兩個主題都是深色）、`--line-strong`；看好／看壞改成 `#2F7D57`／`#B4473A`（亮色）。儀表盤中間改成白底、外圈帶顏色。已用 `/verify` 在亮色與暗色截圖確認。
+2. 版面：3 欄 × 2 列 grid；結果拆成指標卡與明細卡；引擎＋Analyze 移到右上（新的 `EnginePicker.tsx`）。檢查分析、Fetch、範例、兩個引擎時的切換按鈕都正常。
+3. 歷史紀錄：移到最上面的抽屜，按鈕展開／收起，展開時卡片排列；點一筆會填回表單並收起；Clear 正常。檔案：`HistoryList.tsx`、`App.tsx`、`styles.css`。
+4. 閃電元素：標題與閃電背景、黃色底線、Analyze 與指標卡的閃電圖示（用第 1 步做好的 `Bolt.tsx`）。
+5. 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。
+6. 收尾：更新 `.claude/skills/verify/` 的 `SKILL.md` 與 `features/`（歷史紀錄要先按按鈕才看得到等新的操作方式）、重拍 README 的亮色與暗色截圖（可用 `/verify` 的 Chrome）、更新本檔。
+
+每步都跑前端 59 個測試＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
+
 **上線前必做**（2026-11-03 與使用者討論。這些不是 bug，部署時再做）
 - **上線版不開 Claude**（使用者決定，避免訪客用掉 API 費用）：伺服器上不設定 `ANTHROPIC_API_KEY`，Claude 狀態就是 `unavailable`，完全不會呼叫。Claude 比較留在本機與 GitHub（README 截圖）展示。程式碼不刪。
-- 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
+- （併入上方「UI 改版」第 5 步）改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
 - 前後端分開部署時：前端目前靠 Vite 代理 `/api`，上線要設定後端網址（例如環境變數）與 CORS。
 - 速率限制：`/api/article` 會替訪客抓網頁、`/api/analyze` 會跑 FinBERT，都要限制次數。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。
