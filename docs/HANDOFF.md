@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，**C1（壓縮炸彈會讓伺服器當掉）上線前一定要修**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）與 C2 已修好；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
 
 ## 1. 這是什麼、為什麼做
 
@@ -15,7 +15,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，170 個 pytest 全部通過 |
+| 後端（FastAPI）| 完成，176 個 pytest 全部通過 |
 | 前端（Vite + React + TS）| 完成，55 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
@@ -134,7 +134,7 @@ README.md
 - **前端**（2026-11-03 起）：修正：localStorage 形狀不對時改用預設值或丟掉壞的那筆，不再白畫面（第 1 項，已在 Safari 實測）。Safari 儀表盤指針偏離圓心（第 12 項）：`transformOrigin` 用 px 時 Safari 當成螢幕像素，改成指針畫在原點、以 `0 0` 旋轉再移到圓心，Safari 與 Chrome 實測通過。清空的權重存成 `null`，讀回來是 `NaN`。引擎名稱用 `Object.hasOwn` 比對，`"toString"` 這類內建名稱不算。晚到的回應（第 2 項）：`App.tsx` 用 `edits` 計數，抓文章途中任何修改（打字、改網址、點範例或歷史）都讓那次抓取作廢；分析途中只有整則新聞被換掉（範例、歷史、抓到新文章）才不顯示結果，但仍存進歷史。歷史紀錄的網址（第 3 項）：`history.ts` 的 `storySource()`，只有網址欄與文字框都還是 Fetch 回來的原樣才存網址（使用者接受刪改內文後就不存網址）。兩項都已在瀏覽器實測。
 - **前後端連線**（2026-11-03 起）：修正：後端比前端晚好時，查不到的公司名稱每 3 秒重查（`history.ts` 的 `lookUpName()`），健康檢查失敗也每 3 秒重試，所以後端一好名稱就自己出現、「FinBERT is loading」也會顯示（第 4 項，已在瀏覽器實測）。後端預料外的錯誤改回 JSON 的 `detail`（`main.py` 的 `unexpected_error`），前端會顯示「Something went wrong on the analysis server…」；Vite 代理在後端沒開時回的是空白 500，仍顯示「isn't available right now」（第 5 項）。抓文章整個過程（含 DNS 與轉址）最多 20 秒（`article.py` 的 `TOTAL_SECONDS`；`httpx.Timeout` 是每一步各自的上限，已用本機慢速伺服器實測會被拖住）。前端每個請求 30 秒、分析 2 分鐘（使用者 2026-11-03 決定；正常約 10 秒）後放棄並顯示「took too long」（第 8＋6 項）。前端的「port 8000」提示只在開發模式出現（`import.meta.env.DEV`），正式 build 裡沒有。讀回應內容也受逾時與取消保護（thermo-nuclear review 找到）：原本 `api.ts` 在收到標頭後就清掉計時器與取消監聽，內容卡住會永遠等；現在 `request()` 負責計時與取消、`send()` 送出並讀完內容。已用 Node 的真 fetch 與送一半就停的本機伺服器驗證（取消 0.5 秒結束、卡住 30 秒顯示「took too long」），8 種正常回應的結果與訊息和修改前相同。
 
-- **抓文章**（2026-11-03 起）：非 UTF-8 網頁亂碼（第 9 項）：trafilatura 2.3.1 不看回應標頭，只靠 charset_normalizer 猜，但它會讀網頁內的 `<meta charset>`。所以只有「編碼只寫在標頭」的頁面會猜錯（Shift_JIS 被當成韓文、`crème` 變 `crčme`）。`article.py` 的 `_decode()` 依序：內容是合法 UTF-8 就照 UTF-8 → 前 5000 bytes 有 meta 就交給 trafilatura（和以前一樣；標頭和 meta 衝突時以 meta 為準，使用者 2026-11-03 選擇，因為舊伺服器常對所有網頁送 ISO-8859-1）→ 照標頭的編碼讀，但只接受瀏覽器支援的網頁編碼（`WEB_ENCODINGS` 白名單，照 WHATWG；ISO-8859-1、Shift_JIS、TIS-620 等照瀏覽器改用較大的編碼，例如 cp1252、cp932、cp874）→ 都不行才交給 trafilatura 猜。白名單是 thermo-nuclear review 找到的：原本接受 Python 認得的任何編碼名稱，網站寫 `charset=punycode` 時解碼 3MB 要約 59 秒，期間整台後端停住（同步計算，20 秒上限擋不住）；`charset=undefined` 會丟出 `UnicodeError` 變成 500。名單裡 34 個編碼對近 3MB 的刁鑽內容最慢約 10 毫秒。Python 不認得的瀏覽器別名（`windows-874`、`x-mac-cyrillic`）交給 trafilatura 猜。已用腳本確認一般 UTF-8 頁面（含沒標示的 gzip 內容）抽出結果與修改前完全相同。轉址到非網頁位址（第 10 項）：轉到 `ftp://` 原本說成使用者網址打錯（`_redirect_target()` 改成 `BAD_REDIRECT`）；轉到 `mailto:`、`javascript:`、`data:` 這類沒有主機的位址時，httpx 即使不自動跟隨轉址也會先算下一個網址並丟出 `InvalidURL`，原本漏成 500，現在 `_follow()` 接住也顯示 `BAD_REDIRECT`。使用者自己的網址進 `stream()` 前已解析好，不會觸發這個錯誤（已用奇怪網址與真實連線驗證）。非英文文章（第 11 項，使用者 2026-11-03 選擇只提醒、不擋）：用真實 FinBERT 重現，中文新聞寫「必和必拓」判為無關，夾英文「BHP」的大好消息只給 55 中立。`assessment.ts` 的 `languageNotice()`：FinBERT 的結果、文章字母超過 3 成不是英文字母時（數字母不數字，所以夾幾個英文代號的中文仍會提醒、引用中文名的英文不會），在「有分數」與「Not related」畫面最上方顯示「FinBERT reads English only, so it may have missed this story.」，Claude 不顯示。`App.tsx` 的 `shown` 把結果和當時分析的文字綁在一起，分析後再改文字框不影響提醒，歷史紀錄用該筆的文字。已在瀏覽器實測。
+- **抓文章**（2026-11-03 起）：非 UTF-8 網頁亂碼（第 9 項）：trafilatura 2.3.1 不看回應標頭，只靠 charset_normalizer 猜，但它會讀網頁內的 `<meta charset>`。所以只有「編碼只寫在標頭」的頁面會猜錯（Shift_JIS 被當成韓文、`crème` 變 `crčme`）。`article.py` 的 `_decode()` 依序：內容是合法 UTF-8 就照 UTF-8 → 前 5000 bytes 有 meta 就交給 trafilatura（和以前一樣；標頭和 meta 衝突時以 meta 為準，使用者 2026-11-03 選擇，因為舊伺服器常對所有網頁送 ISO-8859-1）→ 照標頭的編碼讀，但只接受瀏覽器支援的網頁編碼（`WEB_ENCODINGS` 白名單，照 WHATWG；ISO-8859-1、Shift_JIS、TIS-620 等照瀏覽器改用較大的編碼，例如 cp1252、cp932、cp874）→ 都不行才交給 trafilatura 猜。白名單是 thermo-nuclear review 找到的：原本接受 Python 認得的任何編碼名稱，網站寫 `charset=punycode` 時解碼 3MB 要約 59 秒，期間整台後端停住（同步計算，20 秒上限擋不住）；`charset=undefined` 會丟出 `UnicodeError` 變成 500。名單裡 34 個編碼對近 3MB 的刁鑽內容最慢約 10 毫秒。Python 不認得的瀏覽器別名（`windows-874`、`x-mac-cyrillic`）交給 trafilatura 猜。已用腳本確認一般 UTF-8 頁面（含沒標示的 gzip 內容）抽出結果與修改前完全相同。轉址到非網頁位址（第 10 項）：轉到 `ftp://` 原本說成使用者網址打錯（`_redirect_target()` 改成 `BAD_REDIRECT`）；轉到 `mailto:`、`javascript:`、`data:` 這類沒有主機的位址時，httpx 即使不自動跟隨轉址也會先算下一個網址並丟出 `InvalidURL`，原本漏成 500，現在 `_follow()` 接住也顯示 `BAD_REDIRECT`。使用者自己的網址進 `stream()` 前已解析好，不會觸發這個錯誤（已用奇怪網址與真實連線驗證）。非英文文章（第 11 項，使用者 2026-11-03 選擇只提醒、不擋）：用真實 FinBERT 重現，中文新聞寫「必和必拓」判為無關，夾英文「BHP」的大好消息只給 55 中立。`assessment.ts` 的 `languageNotice()`：FinBERT 的結果、文章字母超過 3 成不是英文字母時（數字母不數字，所以夾幾個英文代號的中文仍會提醒、引用中文名的英文不會），在「有分數」與「Not related」畫面最上方顯示「FinBERT reads English only, so it may have missed this story.」，Claude 不顯示。`App.tsx` 的 `shown` 把結果和當時分析的文字綁在一起，分析後再改文字框不影響提醒，歷史紀錄用該筆的文字。已在瀏覽器實測。壓縮炸彈（Codex C1）與壞掉的壓縮內容（C2）：httpx 的 `aiter_bytes()` 會把每個網路 chunk 整塊解壓縮，解完才輪到我們檢查 3 MB 上限，`gzip, gzip` 的 791 bytes 回應就讓後端多吃 1.2 GB；壞掉的 gzip 丟出的 `DecodingError` 不是 `TransportError`，變成 500。`_read_limited()` 改用 `aiter_raw()` 自己用 zlib 解壓縮，每次最多解到上限多 1 byte，只接受 gzip、x-gzip、deflate（zlib 格式）與不壓縮，其他編碼與解壓縮錯誤都顯示 `NOT_HTML`；請求也明確送 `Accept-Encoding: gzip, deflate`，免得主機裝了 brotli 後 httpx 自動要 br。已用真實連線比對新舊版：12 種壓縮情況裡 11 種結果逐字相同（含 chunked、截斷、兩段 gzip，這些行為和 httpx 一樣），10 個真實新聞網站結果相同，炸彈只多 6 MB。
 
 **已知但不修**
 - 人名會被當成公司（「Sarah Goodman」→ Goodman Group）、沒寫 FC 的球隊名（「Santos beat Corinthians」）。
@@ -148,11 +148,10 @@ README.md
 - ISO-2022-JP 編碼的日文網頁仍會亂碼：它只用 7-bit byte，剛好也是合法 UTF-8，`_decode()` 第一步就照 UTF-8 讀（GitHub 上的舊版也一樣）。這種編碼現在主要用在 email。
 - 法文、德文這類也用英文字母的非英文文章偵測不到，不會出現第 11 項的提醒。FinBERT 判為無關時每檔持股仍寫「Not mentioned in the article.」，和提醒的「可能漏看」語氣有點衝突，提醒排在前面所以先不改。
 - 權重打 `1e-323` 這種極小正數會通過驗證，正規化後變成 0，相關新聞被回成「Unrelated」（Codex C7，已實測）。沒有人會這樣輸入。
+- 標成 `Content-Encoding: deflate` 卻送 raw deflate（沒有 zlib 標頭）的舊伺服器，C1 修正後會顯示「isn't a news page」，以前 httpx 讀得到（已實測）。現代網站幾乎都用 gzip，使用者 2026-11-03 決定不支援。
 - 瀏覽器的 localStorage 寫入失敗（例如空間滿了）時，`addHistory` 每次都從存檔重建清單，這次工作階段先前的紀錄會從畫面上消失（Codex C9，已用模擬的 `setItem` 例外實測）。只存 20 筆，現代瀏覽器很難碰到。
 
 **Codex 檢查找到、待修**（2026-11-03 由 Codex 多代理檢查找出，Claude 用真實程式全部重跑確認。嚴重度與順序由使用者同意。依建議順序列出）
-- **C1【高】壓縮炸彈吃光記憶體**：`article.py` 的 `_read_limited()` 在 `aiter_bytes()` 解壓縮之後才檢查 3 MB 上限，每個網路 chunk 會先整塊解開。`Content-Length` 檢查的是壓縮後的大小，也擋不住。實測 `Content-Encoding: gzip, gzip` 的 791 bytes 回應讓後端多吃 1.2 GB（RSS），321 bytes 多吃約 300 MB。上線主機只有 1–2 GB，貼一個惡意網址就能讓伺服器當掉。
-- **C2【中】壞掉的壓縮內容回 500**：標頭寫 `Content-Encoding: gzip`、內容卻不是 gzip 時，httpx 丟出 `DecodingError`。它不是 `TransportError` 的子類別，`_follow()` 沒接住，`/api/article` 回 500。和 C1 在同一段程式，一起修。
 - **C4【中】「GPT-5」被當成 GPT Group**：只持有 GPT，新聞「OpenAI's GPT-5 chatbot helped a software startup double profits…」被判為相關，真 FinBERT 給 92.5% 看好。`asx.py` 的比對讓 `GPT` 命中 `GPT-5`。
 - **C3【低】超出範圍的數字回 500**：直接打 `/api/analyze`，權重送 `1e309`、`-1e309` 或 `NaN` 時回 500 而不是 422。Python 讀成 inf／nan，FastAPI 的驗證錯誤回應要把這個值放進 JSON，序列化失敗。正常操作網頁送不出這種值（推論，前端擋權重 >100）。
 - **C6【低】總和剛好 99.5／100.5 仍提示縮放**：`[0.35, 19.58, 79.57]` 的浮點總和是 `99.49999999999999`，`[0.01, 8.56, 91.93]` 是 `100.50000000000001`，`aggregate.py` 的 0.5 邊界比較因此誤判，`weights_adjusted=True`。
@@ -200,6 +199,7 @@ README.md
 - **用真實 FinBERT 驗證**：模型已在本機快取，`cd backend && HF_HUB_OFFLINE=1 PYTHONPATH=. .venv/bin/python ...`，載入約幾秒。修 FinBERT 的 bug 時，測試用假分類器，修完再用真模型確認一次。
 - **用真實 Claude 驗證錯誤訊息**：模型名稱打錯（404）與錯誤 key（401）不會產生費用。腳本裡用 `load_dotenv(".env")` 明確指定路徑；`load_dotenv()` 會從腳本所在資料夾找，放在專案外會讀不到 key。
 - `backend/data/asx_companies.csv` 是 **CRLF 換行**（Python csv 模組預設），用 `sed` 比對整行會失敗，要用 Python 讀寫 bytes。改別名時 `scripts/build_asx_list.py` 的 `ALIASES` 與 CSV 兩邊都要改。
+- **MockTransport 的 `httpx.Response(content=...)` 會在建立時就讀完並解壓縮內容**，所以 `test_article.py` 的 `fetch()` 先經過 `unread()` 改成未讀的 stream，壓縮的假網頁用 `packed()` 直接給原始 bytes；不然炸彈在測試裡就先解開了，`aiter_raw()` 也會丟 `StreamConsumed`。
 - **用真實連線測抓文章**：在腳本裡用 `http.server` 開本機伺服器，回想測的標頭與內容（編碼、轉址、送一半就停），並把 `article._check_public` 暫時換成什麼都不做的函式，因為本機位址會被擋。MockTransport 會跳過 httpx 底層的檢查，結論可能不一樣（第 7 項就是這樣撤回的）。
 - **後端的同步計算會卡住整台伺服器**：`async` 函式裡的解碼、trafilatura 抽文字都在事件迴圈上執行，`asyncio.timeout` 打斷不了。懷疑某段很慢時，另開一個每 0.1 秒跳一次的 task 量最長停頓（charset=punycode 就是這樣量出 59 秒）。
 - **跑前端真程式**：`cd frontend && npx vite-node 腳本.ts` 可以直接 import `src/lib` 的函式；`fetch` 用的是相對路徑，要先把 `globalThis.fetch` 包一層補上本機伺服器網址。

@@ -1,6 +1,8 @@
 import asyncio
 import socket
 import time
+import tracemalloc
+import zlib
 
 import httpx
 import pytest
@@ -36,8 +38,23 @@ def html(body=ARTICLE_HTML, status=200, **headers):
     return httpx.Response(status, content=body.encode(), headers={"content-type": "text/html; charset=utf-8", **headers})
 
 
+def unread(handler):
+    # Response(content=...) reads and unpacks its body at once; a real connection leaves it unread.
+    def serve(req):
+        res = handler(req)
+        return httpx.Response(res.status_code, headers=res.headers, stream=res.stream)
+
+    return serve
+
+
+def packed(body, encoding):
+    return httpx.Response(
+        200, stream=httpx.ByteStream(body), headers={"content-type": "text/html", "content-encoding": encoding}
+    )
+
+
 async def fetch(url, handler):
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unread(handler))) as client:
         return await fetch_article(url, client=client, resolve=fake_resolve)
 
 
@@ -241,6 +258,35 @@ async def test_rejects_pages_that_are_not_html():
 async def test_rejects_pages_that_are_too_big(monkeypatch):
     monkeypatch.setattr(article, "MAX_BYTES", 200)
     await fails_with("https://news.example/bhp", lambda req: html(), "isn't a news page")
+
+
+def gzipped(chunks):
+    packer = zlib.compressobj(9, zlib.DEFLATED, 31)
+    return b"".join(packer.compress(chunk) for chunk in chunks) + packer.flush()
+
+
+async def test_reads_compressed_pages():
+    page = lambda req: packed(gzipped([ARTICLE_HTML.encode()]), "gzip")
+    result = await fetch("https://news.example/bhp", page)
+    assert "wet weather in the Pilbara" in result.text
+
+
+async def test_stops_unpacking_a_compressed_page_at_the_size_limit():
+    bomb = gzipped(b"\0" * 1_000_000 for _ in range(64))  # 64 MB of zeros in about 62 KB
+    page = lambda req: packed(bomb, "gzip")
+    tracemalloc.start()
+    try:
+        await fails_with("https://news.example/bhp", page, "isn't a news page")
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 4 * article.MAX_BYTES
+
+
+@pytest.mark.parametrize("encoding", ["gzip", "deflate", "br", "gzip, gzip"])
+async def test_explains_compressed_pages_we_cannot_unpack(encoding):
+    broken = lambda req: packed(b"not compressed", encoding)
+    await fails_with("https://news.example/bhp", broken, "isn't a news page")
 
 
 async def test_gives_up_on_a_site_that_sends_a_little_at_a_time(monkeypatch):

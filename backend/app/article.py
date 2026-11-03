@@ -11,6 +11,7 @@ import codecs
 import ipaddress
 import re
 import socket
+import zlib
 
 import httpx
 import trafilatura
@@ -23,6 +24,7 @@ MAX_REDIRECTS = 5
 TIMEOUT = httpx.Timeout(10.0)  # per step, so a site that trickles data never hits it
 TOTAL_SECONDS = 20  # the whole fetch, including DNS lookups and redirects
 USER_AGENT = "Mozilla/5.0 (compatible; PortfolioNewsMonitor/0.1)"
+HEADERS = {"user-agent": USER_AGENT, "accept-encoding": "gzip, deflate"}  # the encodings _read_limited unpacks
 MIN_TEXT = 50  # AnalyzeRequest.news needs at least this many characters
 # The encodings browsers support (WHATWG Encoding Standard), keyed by Python's name for a
 # label and mapped to the codec browsers really use for it. Any other label is ignored: the
@@ -85,7 +87,7 @@ async def _follow(url: str, client: httpx.AsyncClient, resolve) -> Article:
     for _ in range(MAX_REDIRECTS + 1):
         await _check_public(current, resolve)
         try:
-            async with client.stream("GET", current, headers={"user-agent": USER_AGENT}, timeout=TIMEOUT) as res:
+            async with client.stream("GET", current, headers=HEADERS, timeout=TIMEOUT) as res:
                 if res.is_redirect and "location" in res.headers:
                     current = _redirect_target(current, res.headers["location"])
                     continue
@@ -143,8 +145,22 @@ def _check_response(res: httpx.Response) -> None:
 
 
 async def _read_limited(res: httpx.Response) -> bytes:
+    """Unpack the page ourselves, stopping at MAX_BYTES. httpx unpacks each chunk whole,
+    and a few hundred compressed bytes can unpack to gigabytes."""
+    encoding = res.headers.get("content-encoding", "").strip().lower()
+    if encoding in ("", "identity"):
+        unpack = None
+    elif encoding in ("gzip", "x-gzip", "deflate"):
+        unpack = zlib.decompressobj(wbits=47)  # gzip or zlib framing
+    else:
+        raise ArticleError(NOT_HTML)
     body = bytearray()
-    async for chunk in res.aiter_bytes():
+    async for chunk in res.aiter_raw():
+        if unpack:
+            try:
+                chunk = unpack.decompress(chunk, MAX_BYTES + 1 - len(body))
+            except zlib.error as exc:
+                raise ArticleError(NOT_HTML) from exc
         body += chunk
         if len(body) > MAX_BYTES:
             raise ArticleError(NOT_HTML)
