@@ -91,11 +91,15 @@ class TestMentions:
             ("SPP", "The miner will raise $20 million through an SPP."),
             ("CPU", "Nvidia said CPU demand was softening."),
             ("SEC", "The SEC fined the broker."),
+            ("GPT", "OpenAI's GPT-5 chatbot helped a software startup double profits."),
         ],
     )
     def test_news_acronyms_need_exchange_prefix(self, ticker, sentence):
         assert not mentions(sentence, holding(ticker))
         assert mentions(f"Shares in (ASX: {ticker}) rose.", holding(ticker))
+
+    def test_gpt_group_by_name_still_counts(self):
+        assert mentions("GPT Group lifted its distribution guidance.", holding("GPT"))
 
     @pytest.mark.parametrize(
         "ticker,sentence",
