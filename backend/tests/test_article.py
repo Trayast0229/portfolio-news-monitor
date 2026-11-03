@@ -148,6 +148,13 @@ async def test_trusts_the_page_over_the_header_when_they_disagree():
     assert text in result.text
 
 
+async def test_ignores_a_meta_charset_inside_an_html_comment():
+    page = f'<html><head><!-- <meta charset="windows-1250"> --><title>H</title></head><body><article><p>{FRENCH}</p></article></body></html>'
+    res = httpx.Response(200, content=page.encode("windows-1252"), headers={"content-type": "text/html; charset=windows-1252"})
+    result = await fetch("https://news.example/bhp", lambda req: res)
+    assert FRENCH in result.text
+
+
 async def test_reads_utf8_pages_as_utf8_even_when_labelled_otherwise():
     page = f"<html><body><article><p>{FRENCH}</p></article></body></html>"
     res = httpx.Response(200, content=page.encode(), headers={"content-type": "text/html; charset=ISO-8859-1"})

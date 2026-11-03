@@ -52,6 +52,8 @@ WEB_ENCODINGS = {
 # trafilatura already honours a meta tag in the part of the page it scans for one.
 META_CHARSET = re.compile(rb"<meta[^>]+charset\s*=", re.IGNORECASE)
 META_SCAN_BYTES = 5000
+# A comment runs to the next "-->", or to the end when it isn't closed; "<!-->" and "<!--->" are empty ones.
+HTML_COMMENT = re.compile(rb"<!--(?:-?>|.*?(?:-->|\Z))", re.DOTALL)
 
 
 class ArticleError(Exception):
@@ -176,7 +178,7 @@ def _decode(body: bytes, charset: str | None) -> str | bytes:
         return body.decode("utf-8")  # a page that decodes as UTF-8 is UTF-8, whatever its label says
     except UnicodeDecodeError:
         pass
-    if META_CHARSET.search(body[:META_SCAN_BYTES]):
+    if META_CHARSET.search(HTML_COMMENT.sub(b"", body[:META_SCAN_BYTES])):
         return body  # the page's own label wins: old servers send ISO-8859-1 for everything
     try:
         return body.decode(WEB_ENCODINGS[codecs.lookup(charset or "").name])
