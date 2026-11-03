@@ -79,6 +79,43 @@ async def test_cuts_long_articles_to_the_limit(monkeypatch):
     assert result.truncated is True
 
 
+JAPANESE = "BHPの株価が上昇した。鉄鉱石の需要は強い。" * 3
+FRENCH = "Nestlé café – crème brûlée BHP shares rose on Friday after the miner reported a record annual profit and lifted its dividend."
+QUOTES = "The CEO called it “a great year” after BHP shares rose to a record on Friday, analysts said."
+
+
+@pytest.mark.parametrize(
+    ("text", "encoding", "content_type"),
+    [
+        (JAPANESE, "shift_jis", "text/html; charset=Shift_JIS"),
+        (FRENCH, "windows-1252", "text/html; charset=windows-1252"),
+        # Browsers read pages labelled ISO-8859-1 as windows-1252, which adds curly quotes.
+        (QUOTES, "windows-1252", "text/html; charset=ISO-8859-1"),
+    ],
+)
+async def test_reads_pages_in_the_encoding_the_site_declares(text, encoding, content_type):
+    page = f"<html><head><title>Headline</title></head><body><article><p>{text}</p></article></body></html>"
+    res = httpx.Response(200, content=page.encode(encoding), headers={"content-type": content_type})
+    result = await fetch("https://news.example/bhp", lambda req: res)
+    assert text.strip() in result.text
+
+
+async def test_trusts_the_page_over_the_header_when_they_disagree():
+    # Old servers label every page ISO-8859-1; the page's own meta tag is the one written with the text.
+    text = "必和必拓股價週五大漲，鐵礦砂需求強勁，公司前景看好。" * 2
+    page = f'<html><head><meta charset="big5"><title>H</title></head><body><article><p>{text}</p></article></body></html>'
+    res = httpx.Response(200, content=page.encode("big5"), headers={"content-type": "text/html; charset=ISO-8859-1"})
+    result = await fetch("https://news.example/bhp", lambda req: res)
+    assert text in result.text
+
+
+async def test_reads_utf8_pages_as_utf8_even_when_labelled_otherwise():
+    page = f"<html><body><article><p>{FRENCH}</p></article></body></html>"
+    res = httpx.Response(200, content=page.encode(), headers={"content-type": "text/html; charset=ISO-8859-1"})
+    result = await fetch("https://news.example/bhp", lambda req: res)
+    assert FRENCH in result.text
+
+
 async def test_follows_a_redirect_and_reports_the_final_address():
     def handler(req):
         if req.url.path == "/short":

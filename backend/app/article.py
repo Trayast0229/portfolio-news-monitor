@@ -7,7 +7,9 @@ acceptable risk for this app.)
 """
 
 import asyncio
+import codecs
 import ipaddress
+import re
 import socket
 
 import httpx
@@ -22,6 +24,19 @@ TIMEOUT = httpx.Timeout(10.0)  # per step, so a site that trickles data never hi
 TOTAL_SECONDS = 20  # the whole fetch, including DNS lookups and redirects
 USER_AGENT = "Mozilla/5.0 (compatible; PortfolioNewsMonitor/0.1)"
 MIN_TEXT = 50  # AnalyzeRequest.news needs at least this many characters
+# Browsers read these labels as the wider encodings real pages use (WHATWG Encoding Standard).
+BROWSER_ENCODINGS = {
+    "iso8859-1": "cp1252",
+    "ascii": "cp1252",
+    "shift_jis": "cp932",
+    "gb2312": "gb18030",
+    "gbk": "gb18030",
+    "big5": "big5hkscs",
+    "euc_kr": "cp949",
+}
+# trafilatura already honours a meta tag in the part of the page it scans for one.
+META_CHARSET = re.compile(rb"<meta[^>]+charset\s*=", re.IGNORECASE)
+META_SCAN_BYTES = 5000
 
 
 class ArticleError(Exception):
@@ -62,9 +77,10 @@ async def _follow(url: str, client: httpx.AsyncClient, resolve) -> Article:
                     continue
                 _check_response(res)
                 body = await _read_limited(res)
+                charset = res.charset_encoding
         except httpx.TransportError as exc:
             raise ArticleError(NO_RESPONSE) from exc
-        return _extract(body, str(current))
+        return _extract(_decode(body, charset), str(current))
     raise ArticleError("That link redirects too many times. Try the article's own address.")
 
 
@@ -112,7 +128,23 @@ async def _read_limited(res: httpx.Response) -> bytes:
     return bytes(body)
 
 
-def _extract(body: bytes, url: str) -> Article:
+def _decode(body: bytes, charset: str | None) -> str | bytes:
+    """Read the page in the encoding the header declares. trafilatura ignores the header and
+    guesses wrong for pages such as Shift_JIS that say their encoding nowhere else."""
+    try:
+        return body.decode("utf-8")  # a page that decodes as UTF-8 is UTF-8, whatever its label says
+    except UnicodeDecodeError:
+        pass
+    if META_CHARSET.search(body[:META_SCAN_BYTES]):
+        return body  # the page's own label wins: old servers send ISO-8859-1 for everything
+    try:
+        name = codecs.lookup(charset or "").name
+        return body.decode(BROWSER_ENCODINGS.get(name, name))
+    except (LookupError, UnicodeDecodeError):
+        return body  # no label, or a wrong one: let trafilatura guess
+
+
+def _extract(body: str | bytes, url: str) -> Article:
     doc = trafilatura.bare_extraction(body, url=url, with_metadata=True, include_comments=False)
     text = (doc.text or "").strip() if doc else ""
     if len(text) < MIN_TEXT:
