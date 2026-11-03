@@ -13,6 +13,7 @@ import {
   type EngineStatus,
   type HoldingInput,
 } from "./lib/api";
+import { usableEngines } from "./lib/engines";
 import { EXAMPLES } from "./lib/examples";
 import { storySource } from "./lib/history";
 import { filledHoldings, holdingsProblem } from "./lib/holdings";
@@ -108,7 +109,8 @@ export default function App() {
   }
 
   async function run() {
-    const problem = validate(holdings, news, engines);
+    const chosen = usableEngines(engines, status);
+    const problem = validate(holdings, news, chosen);
     setError(problem);
     if (problem) return;
     const cleaned = filledHoldings(holdings);
@@ -116,7 +118,7 @@ export default function App() {
     const isCurrent = () => edits.current.swaps === swaps;
     setLoading(true);
     try {
-      const res = await analyze(cleaned, news.trim(), engines);
+      const res = await analyze(cleaned, news.trim(), chosen);
       const url = storySource(fetched, articleUrl, news);
       setHistory(addHistory({ news: news.trim(), url, holdings: cleaned, response: res }));
       // The run is saved either way, but its result no longer matches the form.

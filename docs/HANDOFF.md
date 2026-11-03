@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1–4 步（風格、版面、歷史紀錄抽屜、閃電元素）已 commit，下一步是第 5 步（上線版提示）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1–5 步（風格、版面、歷史紀錄抽屜、閃電元素、上線版提示）已 commit，下一步是第 6 步（收尾）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -16,7 +16,7 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，188 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，59 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，64 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -192,14 +192,14 @@ README.md
 2. **（已完成）** 版面：3 欄 × 2 列 grid；結果拆成指標卡與明細卡；引擎＋Analyze 移到右上（新的 `EnginePicker.tsx`）。檢查分析、Fetch、範例、兩個引擎時的切換按鈕都正常。做法：`.layout` 用 `grid-template-areas`（holdings／hero／engine、news／result／detail），1024px 以下變一欄，順序 hero → holdings → news → engine → result → detail（`App.tsx` 的 `ONE_COLUMN` 與 CSS 斷點要一致，分析完會捲到 `.result`）。`ResultPanel` 輸出兩張卡：`.card.result`（儀表盤、三類百分比、Affects X%、提醒、Claude 的 summary，保留 `aria-live` 與 `aria-busy`）與 `.card.detail`（By holding、Key points 等、How this score was worked out；沒結果、分析中或引擎錯誤時顯示提示文字）。卡片同一列等高。歷史紀錄暫時留在最下面。已用 `/verify` 截圖確認亮色、暗色、1440 與 800 寬。
 3. **（已完成）** 歷史紀錄：移到最上面的抽屜，按鈕展開／收起，展開時卡片排列；點一筆會填回表單並收起；Clear 正常。檔案：`HistoryList.tsx`、`App.tsx`、`styles.css`。做法：`HistoryList.tsx` 匯出 `HistoryToggle`（`.history-toggle`，`aria-expanded`、`aria-controls="history"`，沒紀錄時不渲染）與 `HistoryList`（`#history.history`，只在展開且有紀錄時渲染）；展開狀態 `historyOpen` 在 `App.tsx`，點紀錄或 Clear 都會收起。暗色模式的膠囊按鈕是淺色（用 `--ink` 底）。`/verify` 的 `analyze-finbert.mjs` 已改成先按 `.history-toggle` 再讀 `.history li`；`SKILL.md` 與 `features/history.md` 的說明留到第 6 步更新。
 4. **（已完成）** 閃電元素：標題與閃電背景、黃色底線、Analyze 與指標卡的閃電圖示（用第 1 步做好的 `Bolt.tsx`）。做法：「Efficiency」獨立一行加黃色粗底線（`text-decoration`，不用螢光筆底色，因為暗色模式白字壓黃底看不清）；大閃電 `.hero-bolt` 透明度用 `--hero-bolt-opacity`（亮 0.35、暗 0.16），窄螢幕移到左邊文字後面；Analyze 文字前的閃電不影響 `/verify` 的 `text=Analyze`（svg 沒有文字）。
-5. 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。
+5. **（已完成）** 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。做法：`lib/engines.ts` 的 `isUsable()`／`usableEngines()`（5 個測試）：狀態是 `unavailable` 才算不能用，健康檢查還沒回應前都算能用；`App.tsx` 的 `run()` 只送能用的引擎，存檔的選擇不改（之後有 key，Claude 會自動回來）。`EnginePicker.tsx`：不能用的引擎按鈕 `disabled`、`aria-pressed=false`，說明換成 `UNAVAILABLE_HINTS`；key 設定與 `pip install` 的提示只在 `import.meta.env.DEV` 顯示。已確認正式版 bundle 裡沒有 `ANTHROPIC_API_KEY`、`pip install`、`backend/.env`、`port 8000`，並用 `vite preview`（`API_URL` 指向 `/verify` 的 8100）在無頭 Chrome 看過正式版畫面。後端 Claude 的「Add ANTHROPIC_API_KEY to backend/.env」錯誤訊息沒改：畫面上選不到 Claude，只有健康檢查還沒回應就按 Analyze、且存檔裡勾著 Claude 時才可能看到，最後的全分支檢查時再確認。
 6. 收尾：更新 `.claude/skills/verify/` 的 `SKILL.md` 與 `features/`（歷史紀錄要先按按鈕才看得到等新的操作方式）、重拍 README 的亮色與暗色截圖（可用 `/verify` 的 Chrome）、更新本檔。
 
-每步都跑前端 59 個測試＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
+每步都跑前端全部測試（第 5 步後 64 個）＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
 
 **上線前必做**（2026-11-03 與使用者討論。這些不是 bug，部署時再做）
 - **上線版不開 Claude**（使用者決定，避免訪客用掉 API 費用）：伺服器上不設定 `ANTHROPIC_API_KEY`，Claude 狀態就是 `unavailable`，完全不會呼叫。Claude 比較留在本機與 GitHub（README 截圖）展示。程式碼不刪。
-- （併入上方「UI 改版」第 5 步）改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
+- **（已完成，UI 改版第 5 步）** 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
 - 前後端分開部署時：前端目前靠 Vite 代理 `/api`，上線要設定後端網址（例如環境變數）與 CORS。
 - 速率限制：`/api/article` 會替訪客抓網頁、`/api/analyze` 會跑 FinBERT，都要限制次數。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。

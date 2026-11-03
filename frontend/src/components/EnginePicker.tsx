@@ -1,9 +1,15 @@
 import { ENGINE_NAMES, type EngineName, type EngineStatus } from "../lib/api";
+import { isUsable } from "../lib/engines";
 import { Bolt } from "./Bolt";
 
 const ENGINE_HINTS: Record<EngineName, string> = {
   claude: "Reads the story like an analyst, including indirect effects.",
-  finbert: "Free and local. Scores only sentences that name your companies.",
+  finbert: "Free. Scores only sentences that name your companies.",
+};
+
+const UNAVAILABLE_HINTS: Record<EngineName, string> = {
+  claude: "Available when you run the project locally.",
+  finbert: "Not available right now. Try again later.",
 };
 
 interface Props {
@@ -16,28 +22,34 @@ interface Props {
 }
 
 export function EnginePicker({ engines, status, onToggle, error, loading, onAnalyze }: Props) {
+  const names = Object.keys(ENGINE_NAMES) as EngineName[];
+  const chosen = names.filter((name) => engines.includes(name) && isUsable(name, status));
   return (
     <section className="card engine-card">
       <fieldset className="engines">
         <legend>Engine</legend>
-        {(Object.keys(ENGINE_NAMES) as EngineName[]).map((name) => (
-          <div key={name} className="engine">
-            <button
-              type="button"
-              className="engine-toggle"
-              aria-pressed={engines.includes(name)}
-              onClick={() => onToggle(name)}
-            >
-              <span className="engine-check" aria-hidden="true" />
-              <span>
-                <strong>{ENGINE_NAMES[name]}</strong>
-                <span className="muted">{ENGINE_HINTS[name]}</span>
-              </span>
-            </button>
-            {engines.includes(name) && <EngineNote name={name} status={status[name]} />}
-          </div>
-        ))}
-        {engines.length === 2 && <p className="muted small">Both engines run side by side so you can compare them.</p>}
+        {names.map((name) => {
+          const usable = isUsable(name, status);
+          return (
+            <div key={name} className="engine">
+              <button
+                type="button"
+                className="engine-toggle"
+                aria-pressed={chosen.includes(name)}
+                disabled={!usable}
+                onClick={() => onToggle(name)}
+              >
+                <span className="engine-check" aria-hidden="true" />
+                <span>
+                  <strong>{ENGINE_NAMES[name]}</strong>
+                  <span className="muted">{usable ? ENGINE_HINTS[name] : UNAVAILABLE_HINTS[name]}</span>
+                </span>
+              </button>
+              <EngineNote name={name} status={status[name]} chosen={chosen.includes(name)} />
+            </div>
+          );
+        })}
+        {chosen.length === 2 && <p className="muted small">Both engines run side by side so you can compare them.</p>}
       </fieldset>
 
       {error && (
@@ -53,21 +65,21 @@ export function EnginePicker({ engines, status, onToggle, error, loading, onAnal
   );
 }
 
-function EngineNote({ name, status }: { name: EngineName; status?: EngineStatus }) {
-  if (name === "claude" && status === "unavailable")
+// Setup steps only make sense to someone running the project, so the live site leaves them out.
+function EngineNote({ name, status, chosen }: { name: EngineName; status?: EngineStatus; chosen: boolean }) {
+  if (name === "finbert" && status === "not_loaded" && chosen)
+    return <p className="notice small">FinBERT is starting up, which can take a minute.</p>;
+  if (!import.meta.env.DEV || status !== "unavailable") return null;
+  if (name === "claude")
     return (
       <p className="notice small">
         Claude needs an API key. Add <code>ANTHROPIC_API_KEY</code> to <code>backend/.env</code> and restart the
         backend. You can get a key at console.anthropic.com.
       </p>
     );
-  if (name === "finbert" && status === "not_loaded")
-    return <p className="notice small">FinBERT is loading. The first run downloads the model, which can take a minute.</p>;
-  if (name === "finbert" && status === "unavailable")
-    return (
-      <p className="notice small">
-        FinBERT isn't installed. Run <code>pip install -e '.[finbert]'</code> in <code>backend</code>.
-      </p>
-    );
-  return null;
+  return (
+    <p className="notice small">
+      FinBERT isn't installed. Run <code>pip install -e '.[finbert]'</code> in <code>backend</code>.
+    </p>
+  );
 }

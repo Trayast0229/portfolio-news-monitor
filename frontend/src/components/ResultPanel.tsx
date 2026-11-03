@@ -99,8 +99,8 @@ function Verdict({ result, news, weightsAdjusted }: { result: PortfolioResult; n
         {skipped && <p className="notice">{skipped}</p>}
         {result.engine === "finbert" && (
           <p className="notice">
-            FinBERT only counts companies the article names. Claude can also pick up indirect effects, such as
-            commodity prices or interest rates.
+            FinBERT only counts companies the article names, so it misses indirect effects such as commodity prices
+            or interest rates.
           </p>
         )}
       </>

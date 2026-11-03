@@ -487,8 +487,17 @@ textarea {
   font-size: 0.875rem;
 }
 
-.engine-toggle:hover {
+.engine-toggle:hover:not(:disabled) {
   border-color: var(--line-strong);
+}
+
+.engine-toggle:disabled {
+  background: var(--field);
+  cursor: not-allowed;
+}
+
+.engine-toggle:disabled strong {
+  color: var(--muted);
 }
 
 .engine-toggle[aria-pressed="true"] {
