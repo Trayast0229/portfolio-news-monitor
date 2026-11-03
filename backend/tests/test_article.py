@@ -283,6 +283,25 @@ async def test_stops_unpacking_a_compressed_page_at_the_size_limit():
     assert peak < 4 * article.MAX_BYTES
 
 
+async def test_ignores_whatever_follows_the_end_of_a_compressed_page():
+    async def page_then_junk():
+        yield gzipped([ARTICLE_HTML.encode()])
+        for _ in range(200):  # 13 MB that zlib would otherwise keep as unused_data
+            yield b"x" * 65536
+
+    page = lambda req: httpx.Response(
+        200, headers={"content-type": "text/html", "content-encoding": "gzip"}, content=page_then_junk()
+    )
+    tracemalloc.start()
+    try:
+        result = await fetch("https://news.example/bhp", page)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert "wet weather in the Pilbara" in result.text
+    assert peak < 2 * article.MAX_BYTES
+
+
 @pytest.mark.parametrize("encoding", ["gzip", "deflate", "br", "gzip, gzip"])
 async def test_explains_compressed_pages_we_cannot_unpack(encoding):
     broken = lambda req: packed(b"not compressed", encoding)

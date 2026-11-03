@@ -164,6 +164,8 @@ async def _read_limited(res: httpx.Response) -> bytes:
         body += chunk
         if len(body) > MAX_BYTES:
             raise ArticleError(NOT_HTML)
+        if unpack and unpack.eof:
+            break  # anything after the end of the compressed page is junk zlib would keep in memory
     return bytes(body)
 
 
