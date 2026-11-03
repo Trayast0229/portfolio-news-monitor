@@ -38,8 +38,12 @@ export function SentimentGauge({ score, caption }: Props) {
         ))}
         <text className="gauge-end" x={CX - R} y={CY + 30} textAnchor="middle">0</text>
         <text className="gauge-end" x={CX + R} y={CY + 30} textAnchor="middle">100</text>
-        <g className="gauge-needle" style={{ transform: `rotate(${rotation}deg)`, transformOrigin: `${CX}px ${CY}px` }}>
-          <line x1={CX} y1={CY} x2={CX - NEEDLE} y2={CY} />
+        {/* Pivot at 0 0, then move to the hub. Safari reads a px transform-origin as
+            screen pixels, so "160px" missed the hub whenever the gauge was scaled. */}
+        <g transform={`translate(${CX} ${CY})`}>
+          <g className="gauge-needle" style={{ transform: `rotate(${rotation}deg)`, transformOrigin: "0 0" }}>
+            <line x1={0} y1={0} x2={-NEEDLE} y2={0} />
+          </g>
         </g>
         <circle className={`gauge-hub ${zone ? `tone-${zone.tone}` : ""}`} cx={CX} cy={CY} r={HUB} />
         <text className="gauge-score" x={CX} y={CY} textAnchor="middle" dominantBaseline="central">
