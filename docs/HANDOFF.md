@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1–R4、R6 已處理，**跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1–R4、R6 已處理，**跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -170,7 +170,7 @@ README.md
 
 已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。原列第 7 項「`Content-Length` 不是數字就回 500」在真實連線不會發生：httpx 0.28.1 底層的 h11 會先拒絕非數字的值（變成 `RemoteProtocolError`，已顯示成網站沒回應），重複的相同值（`38, 38`）會合併成一個數字；只有測試用的 `MockTransport` 會跳過這層檢查（2026-11-03 用本機 socket 伺服器實測）。
 
-**上線前必做**（2026-11-03 與使用者討論。部署是作業要求；不是 bug，部署時再做）
+**上線前必做**（2026-11-03 與使用者討論。這些不是 bug，部署時再做）
 - **上線版不開 Claude**（使用者決定，避免訪客用掉 API 費用）：伺服器上不設定 `ANTHROPIC_API_KEY`，Claude 狀態就是 `unavailable`，完全不會呼叫。Claude 比較留在本機與 GitHub（README 截圖）展示。程式碼不刪。
 - 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
 - 前後端分開部署時：前端目前靠 Vite 代理 `/api`，上線要設定後端網址（例如環境變數）與 CORS。

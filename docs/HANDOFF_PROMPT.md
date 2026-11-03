@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub。**現在的階段是「上傳前收尾」**：Codex 審核了還沒 push 的 commit，找到 R1–R6，大部分已修好，剩下幾項小問題修完、跑過 thermo-nuclear review，才能 push。之後的下一階段是**部署上線**（作業要求），一律照上線標準判斷。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub。**現在的階段是「上傳前收尾」**：Codex 審核了還沒 push 的 commit，找到 R1–R6，大部分已修好，剩下幾項小問題修完、跑過 thermo-nuclear review，才能 push。之後的下一階段是**部署上線**，一律照上線標準判斷。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
