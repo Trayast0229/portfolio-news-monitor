@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from .aggregate import aggregate, normalize_weights
 from .article import ArticleError, fetch_article
@@ -51,6 +52,14 @@ def _preload(engine: FinbertEngine) -> None:
 
 
 app = FastAPI(title="Portfolio News Monitor", lifespan=lifespan)
+
+
+# Without this, a crash returns plain text and the frontend can't tell it apart
+# from the dev proxy's "backend is off" reply. The traceback is still logged.
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    detail = "Something went wrong on the analysis server. Try again, and if it keeps happening, check the backend terminal."
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 
 @app.get("/api/health")

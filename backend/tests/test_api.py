@@ -137,6 +137,16 @@ def test_article_errors_come_back_as_readable_messages(client, monkeypatch):
     assert res.json() == {"detail": "This site needs a subscription."}
 
 
+def test_unexpected_errors_say_the_server_failed_not_that_it_is_off(monkeypatch):
+    async def broken_fetch(url):
+        raise ValueError("bug")
+
+    monkeypatch.setattr(main, "fetch_article", broken_fetch)
+    res = TestClient(app, raise_server_exceptions=False).post("/api/article", json={"url": "https://news.example/bhp"})
+    assert res.status_code == 500
+    assert "Something went wrong on the analysis server" in res.json()["detail"]
+
+
 @pytest.mark.parametrize("url", ["", "https://news.example/" + "a" * 2000])
 def test_article_rejects_empty_or_huge_links(client, url):
     assert client.post("/api/article", json={"url": url}).status_code == 422
