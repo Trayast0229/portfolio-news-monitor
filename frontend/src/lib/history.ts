@@ -29,6 +29,16 @@ export function tickersToLookUp(holdings: HoldingInput[], requested: Set<string>
   return [...new Set(tickers)];
 }
 
+// The link to save with a history entry: only the page the story text was
+// fetched from, and only while both boxes still hold what the fetch put there.
+export function storySource(
+  fetched: { url: string; text: string } | null,
+  url: string,
+  news: string,
+): string | undefined {
+  return fetched && fetched.url === url.trim() && fetched.text === news ? fetched.url : undefined;
+}
+
 // Looks up one ticker's company name. A failed lookup, for example while the
 // backend is still starting, is tried again every few seconds until it works.
 export function lookUpName(

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HistoryList } from "./components/HistoryList";
 import { HoldingsEditor } from "./components/HoldingsEditor";
 import { ResultPanel } from "./components/ResultPanel";
@@ -13,6 +13,7 @@ import {
   type HoldingInput,
 } from "./lib/api";
 import { EXAMPLES } from "./lib/examples";
+import { storySource } from "./lib/history";
 import { filledHoldings, holdingsProblem } from "./lib/holdings";
 import {
   addHistory,
@@ -54,6 +55,15 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
+  const [fetched, setFetched] = useState<{ url: string; text: string } | null>(null);
+  // Lets a slow reply notice that the form moved on. Any edit makes a pending
+  // fetch stale; only swapping in a whole new story makes a pending analysis stale.
+  const edits = useRef({ story: 0, swaps: 0 });
+  const editStory = () => (edits.current.story += 1);
+  const swapStory = () => {
+    edits.current.story += 1;
+    edits.current.swaps += 1;
+  };
 
   useEffect(() => saveHoldings(holdings), [holdings]);
   useEffect(() => saveEngines(engines), [engines]);
@@ -85,13 +95,18 @@ export default function App() {
     setFetching(true);
     setFetchError(null);
     setFetchNote(null);
+    const story = edits.current.story;
     try {
       const article = await fetchArticle(articleUrl.trim());
+      if (edits.current.story !== story) return;
+      swapStory();
       setNews(article.text);
       setArticleUrl(article.url);
+      setFetched({ url: article.url, text: article.text });
       if (article.truncated)
         setFetchNote(`The article was long, so we kept the first ${MAX_NEWS.toLocaleString()} characters.`);
     } catch (e) {
+      if (edits.current.story !== story) return;
       setFetchError(e instanceof Error ? e.message : "We couldn't fetch that article. Paste the text instead.");
     } finally {
       setFetching(false);
@@ -99,6 +114,8 @@ export default function App() {
   }
 
   function pickSample(text: string) {
+    swapStory();
+    setFetched(null);
     setNews(text);
     setArticleUrl("");
     setFetchError(null);
@@ -110,23 +127,30 @@ export default function App() {
     setError(problem);
     if (problem) return;
     const cleaned = filledHoldings(holdings);
+    const swaps = edits.current.swaps;
+    const isCurrent = () => edits.current.swaps === swaps;
     setLoading(true);
     try {
       const res = await analyze(cleaned, news.trim(), engines);
+      const url = storySource(fetched, articleUrl, news);
+      setHistory(addHistory({ news: news.trim(), url, holdings: cleaned, response: res }));
+      // The run is saved either way, but its result no longer matches the form.
+      if (!isCurrent()) return;
       setResponse(res);
-      setHistory(addHistory({ news: news.trim(), url: articleUrl.trim() || undefined, holdings: cleaned, response: res }));
       // On a single-column layout the result sits below the form.
       if (window.matchMedia("(max-width: 860px)").matches) {
         document.querySelector(".result")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+      if (isCurrent()) setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
   function openHistory(entry: HistoryEntry) {
+    swapStory();
+    setFetched(entry.url ? { url: entry.url, text: entry.news } : null);
     setHoldings(entry.holdings);
     setNews(entry.news);
     setArticleUrl(entry.url ?? "");
@@ -159,6 +183,7 @@ export default function App() {
                 autoComplete="off"
                 spellCheck={false}
                 onChange={(e) => {
+                  editStory();
                   setArticleUrl(e.target.value);
                   setFetchError(null);
                 }}
@@ -184,7 +209,10 @@ export default function App() {
               maxLength={MAX_NEWS}
               rows={9}
               placeholder="Or paste the headline and article text here."
-              onChange={(e) => setNews(e.target.value)}
+              onChange={(e) => {
+                editStory();
+                setNews(e.target.value);
+              }}
             />
             <div className="news-foot">
               <div className="samples">

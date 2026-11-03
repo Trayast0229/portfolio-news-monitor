@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EngineName, HoldingInput, PortfolioResult } from "./api";
-import { historyScore, lookUpName, mergeHistory, tickersToLookUp } from "./history";
+import { historyScore, lookUpName, mergeHistory, storySource, tickersToLookUp } from "./history";
 import type { HistoryEntry } from "./storage";
 
 function result(engine: EngineName, patch: Partial<PortfolioResult> = {}): PortfolioResult {
@@ -121,5 +121,25 @@ describe("lookUpName", () => {
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(found).toHaveBeenCalledWith(bhp);
+  });
+});
+
+describe("storySource", () => {
+  const fetched = { url: "https://news.example/bhp", text: "BHP cuts guidance after a wet quarter." };
+
+  it("keeps the link the story was fetched from", () => {
+    expect(storySource(fetched, "https://news.example/bhp", fetched.text)).toBe("https://news.example/bhp");
+  });
+
+  it("drops a link that was typed but never fetched", () => {
+    expect(storySource(null, "https://news.example/cba", "CBA posts a record profit.")).toBeUndefined();
+  });
+
+  it("drops the link once the box holds a different story", () => {
+    expect(storySource(fetched, "https://news.example/bhp", "CBA posts a record profit.")).toBeUndefined();
+  });
+
+  it("drops the link once the link box is changed", () => {
+    expect(storySource(fetched, "https://news.example/cba", fetched.text)).toBeUndefined();
   });
 });
