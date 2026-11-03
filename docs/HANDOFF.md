@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1 步（風格）已 commit，下一步是第 2 步（版面）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1 步（風格）、第 2 步（版面）已 commit，下一步是第 3 步（歷史紀錄抽屜）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -189,7 +189,7 @@ README.md
 
 步驟：
 1. **（已完成）** 風格：配色 token（亮色＋暗色）、Inter 字型、黃色主按鈕／外框次要按鈕、Logo 閃電。版面先不動。檔案：`styles.css`、`index.html`、`App.tsx` 標題列。閃電圖案已先做成 `components/Bolt.tsx`（第 4 步直接沿用）。配色 token：`--accent`（黃）、`--accent-hover`、`--on-accent`（黃底上的字，兩個主題都是深色）、`--line-strong`；看好／看壞改成 `#2F7D57`／`#B4473A`（亮色）。儀表盤中間改成白底、外圈帶顏色。已用 `/verify` 在亮色與暗色截圖確認。
-2. 版面：3 欄 × 2 列 grid；結果拆成指標卡與明細卡；引擎＋Analyze 移到右上（新的 `EnginePicker.tsx`）。檢查分析、Fetch、範例、兩個引擎時的切換按鈕都正常。
+2. **（已完成）** 版面：3 欄 × 2 列 grid；結果拆成指標卡與明細卡；引擎＋Analyze 移到右上（新的 `EnginePicker.tsx`）。檢查分析、Fetch、範例、兩個引擎時的切換按鈕都正常。做法：`.layout` 用 `grid-template-areas`（holdings／hero／engine、news／result／detail），1024px 以下變一欄，順序 hero → holdings → news → engine → result → detail（`App.tsx` 的 `ONE_COLUMN` 與 CSS 斷點要一致，分析完會捲到 `.result`）。`ResultPanel` 輸出兩張卡：`.card.result`（儀表盤、三類百分比、Affects X%、提醒、Claude 的 summary，保留 `aria-live` 與 `aria-busy`）與 `.card.detail`（By holding、Key points 等、How this score was worked out；沒結果、分析中或引擎錯誤時顯示提示文字）。卡片同一列等高。歷史紀錄暫時留在最下面。已用 `/verify` 截圖確認亮色、暗色、1440 與 800 寬。
 3. 歷史紀錄：移到最上面的抽屜，按鈕展開／收起，展開時卡片排列；點一筆會填回表單並收起；Clear 正常。檔案：`HistoryList.tsx`、`App.tsx`、`styles.css`。
 4. 閃電元素：標題與閃電背景、黃色底線、Analyze 與指標卡的閃電圖示（用第 1 步做好的 `Bolt.tsx`）。
 5. 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。

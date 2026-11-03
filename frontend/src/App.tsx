@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Bolt } from "./components/Bolt";
+import { EnginePicker } from "./components/EnginePicker";
 import { HistoryList } from "./components/HistoryList";
 import { HoldingsEditor } from "./components/HoldingsEditor";
 import { ResultPanel } from "./components/ResultPanel";
 import {
-  ENGINE_NAMES,
   analyze,
   fetchArticle,
   watchHealth,
@@ -29,11 +29,8 @@ import {
 
 const MIN_NEWS = 50;
 const MAX_NEWS = 20000;
-
-const ENGINE_HINTS: Record<EngineName, string> = {
-  claude: "Reads the story like an analyst, including indirect effects.",
-  finbert: "Free and local. Scores only sentences that name your companies.",
-};
+// Below this width the cards stack in one column (matches styles.css).
+const ONE_COLUMN = "(max-width: 1024px)";
 
 function validate(holdings: HoldingInput[], news: string, engines: EngineName[]): string | null {
   const problem = holdingsProblem(holdings);
@@ -125,7 +122,7 @@ export default function App() {
       if (!isCurrent()) return;
       setShown({ news: news.trim(), response: res });
       // On a single-column layout the result sits below the form.
-      if (window.matchMedia("(max-width: 860px)").matches) {
+      if (window.matchMedia(ONE_COLUMN).matches) {
         document.querySelector(".result")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (e) {
@@ -150,111 +147,93 @@ export default function App() {
 
   return (
     <div className="page">
-      <header className="masthead">
+      <header className="topbar">
         <h1 className="brand">
           <span className="logo">
             <Bolt />
           </span>
           Portfolio News Monitor
         </h1>
-        <p>Paste a news story and see whether it's good or bad for your ASX portfolio, weighted by what you hold.</p>
       </header>
 
       <main className="layout">
-        <div className="inputs">
+        <section className="card holdings-card">
           <HoldingsEditor holdings={holdings} onChange={setHoldings} />
+        </section>
 
-          <div className="news">
-            <label htmlFor="news">News story</label>
-            <div className="article-link">
-              <input
-                type="url"
-                aria-label="Article link"
-                placeholder="Paste a link to a news article"
-                value={articleUrl}
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(e) => {
-                  editStory();
-                  setArticleUrl(e.target.value);
-                  setFetchError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    fetchStory();
-                  }
-                }}
-              />
-              <button type="button" className="secondary" onClick={fetchStory} disabled={fetching}>
-                {fetching ? "Fetching…" : "Fetch"}
-              </button>
-            </div>
-            {fetchError && (
-              <p className="notice notice-error small" role="alert">
-                {fetchError}
-              </p>
-            )}
-            <textarea
-              id="news"
-              value={news}
-              maxLength={MAX_NEWS}
-              rows={9}
-              placeholder="Or paste the headline and article text here."
+        <div className="hero">
+          <p className="headline">Efficiency drives progress.</p>
+          <p className="muted">Paste a news story and see whether it's good or bad for your ASX portfolio.</p>
+        </div>
+
+        <EnginePicker
+          engines={engines}
+          status={status}
+          onToggle={toggleEngine}
+          error={error}
+          loading={loading}
+          onAnalyze={run}
+        />
+
+        <section className="card news">
+          <label htmlFor="news">News story</label>
+          <div className="article-link">
+            <input
+              type="url"
+              aria-label="Article link"
+              placeholder="Paste a link to a news article"
+              value={articleUrl}
+              autoComplete="off"
+              spellCheck={false}
               onChange={(e) => {
                 editStory();
-                setNews(e.target.value);
+                setArticleUrl(e.target.value);
+                setFetchError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  fetchStory();
+                }
               }}
             />
-            <div className="news-foot">
-              <div className="samples">
-                <span className="muted">Try a sample:</span>
-                {EXAMPLES.map((ex) => (
-                  <button key={ex.title} type="button" className="chip" onClick={() => pickSample(ex.text)}>
-                    {ex.title}
-                  </button>
-                ))}
-              </div>
-              <span className="muted">{news.length.toLocaleString()} characters</span>
-            </div>
-            {fetchNote && <p className="muted small">{fetchNote}</p>}
-            <p className="muted small">
-              Sample stories are made up for demonstration. Sites with a paywall or bot protection can't be fetched, so
-              paste their text instead.
-            </p>
+            <button type="button" className="secondary" onClick={fetchStory} disabled={fetching}>
+              {fetching ? "Fetching…" : "Fetch"}
+            </button>
           </div>
-
-          <fieldset className="engines">
-            <legend>Engine</legend>
-            {(Object.keys(ENGINE_NAMES) as EngineName[]).map((name) => (
-              <div key={name} className="engine">
-                <button
-                  type="button"
-                  className="engine-toggle"
-                  aria-pressed={engines.includes(name)}
-                  onClick={() => toggleEngine(name)}
-                >
-                  <span className="engine-check" aria-hidden="true" />
-                  <span>
-                    <strong>{ENGINE_NAMES[name]}</strong>
-                    <span className="muted">{ENGINE_HINTS[name]}</span>
-                  </span>
-                </button>
-                {engines.includes(name) && <EngineNote name={name} status={status[name]} />}
-              </div>
-            ))}
-            {engines.length === 2 && <p className="muted small">Both engines run side by side so you can compare them.</p>}
-          </fieldset>
-
-          {error && (
-            <p className="notice notice-error" role="alert">
-              {error}
+          {fetchError && (
+            <p className="notice notice-error small" role="alert">
+              {fetchError}
             </p>
           )}
-          <button type="button" className="primary" onClick={run} disabled={loading}>
-            {loading ? "Analyzing…" : "Analyze"}
-          </button>
-        </div>
+          <textarea
+            id="news"
+            value={news}
+            maxLength={MAX_NEWS}
+            rows={11}
+            placeholder="Or paste the headline and article text here."
+            onChange={(e) => {
+              editStory();
+              setNews(e.target.value);
+            }}
+          />
+          <div className="news-foot">
+            <div className="samples">
+              <span className="muted">Try a sample:</span>
+              {EXAMPLES.map((ex) => (
+                <button key={ex.title} type="button" className="chip" onClick={() => pickSample(ex.text)}>
+                  {ex.title}
+                </button>
+              ))}
+            </div>
+            <span className="muted">{news.length.toLocaleString()} characters</span>
+          </div>
+          {fetchNote && <p className="muted small">{fetchNote}</p>}
+          <p className="muted small">
+            Sample stories are made up for demonstration. Sites with a paywall or bot protection can't be fetched, so
+            paste their text instead.
+          </p>
+        </section>
 
         <ResultPanel response={shown?.response ?? null} news={shown?.news ?? ""} loading={loading} />
       </main>
@@ -266,23 +245,4 @@ export default function App() {
       </footer>
     </div>
   );
-}
-
-function EngineNote({ name, status }: { name: EngineName; status?: EngineStatus }) {
-  if (name === "claude" && status === "unavailable")
-    return (
-      <p className="notice small">
-        Claude needs an API key. Add <code>ANTHROPIC_API_KEY</code> to <code>backend/.env</code> and restart the
-        backend. You can get a key at console.anthropic.com.
-      </p>
-    );
-  if (name === "finbert" && status === "not_loaded")
-    return <p className="notice small">FinBERT is loading. The first run downloads the model, which can take a minute.</p>;
-  if (name === "finbert" && status === "unavailable")
-    return (
-      <p className="notice small">
-        FinBERT isn't installed. Run <code>pip install -e '.[finbert]'</code> in <code>backend</code>.
-      </p>
-    );
-  return null;
 }

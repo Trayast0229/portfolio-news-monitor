@@ -12,53 +12,66 @@ interface Props {
   loading: boolean;
 }
 
+/** Two grid cards that share the engine switch: the score in the middle, the per-holding detail on the right. */
 export function ResultPanel({ response, news, loading }: Props) {
   const results = response?.results ?? [];
   const [selected, setSelected] = useState<EngineName | null>(null);
   useEffect(() => setSelected(results[0]?.engine ?? null), [response]);
 
   const result = results.find((r) => r.engine === selected) ?? results[0];
+  const scored = !loading && result && result.status !== "error" ? result : null;
 
   return (
-    <section className="result" aria-live="polite" aria-busy={loading}>
-      <div className="result-head">
-        <h2>Portfolio sentiment</h2>
-        {results.length > 1 && (
-          <div className="engine-switch" role="tablist" aria-label="Engine">
-            {results.map((r) => (
-              <button
-                key={r.engine}
-                role="tab"
-                aria-selected={r.engine === result?.engine}
-                onClick={() => setSelected(r.engine)}
-              >
-                <span>{ENGINE_NAMES[r.engine]}</span>
-                <strong className={r.score !== null ? `tone-text-${zoneFor(r.score).tone}` : "muted"}>
-                  {r.status === "ok" ? r.score : r.status === "unrelated" ? "n/a" : "error"}
-                </strong>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+    <>
+      <section className="card result" aria-live="polite" aria-busy={loading}>
+        <div className="result-head">
+          <h2>Portfolio sentiment</h2>
+          {results.length > 1 && (
+            <div className="engine-switch" role="tablist" aria-label="Engine">
+              {results.map((r) => (
+                <button
+                  key={r.engine}
+                  role="tab"
+                  aria-selected={r.engine === result?.engine}
+                  onClick={() => setSelected(r.engine)}
+                >
+                  <span>{ENGINE_NAMES[r.engine]}</span>
+                  <strong className={r.score !== null ? `tone-text-${zoneFor(r.score).tone}` : "muted"}>
+                    {r.status === "ok" ? r.score : r.status === "unrelated" ? "n/a" : "error"}
+                  </strong>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {loading ? (
-        <SentimentGauge score={null} caption="Reading the article…" />
-      ) : !result ? (
-        <>
-          <SentimentGauge score={null} />
-          <p className="result-empty">
-            Add your holdings, paste a news story, and select Analyze to see how it lands on your portfolio.
-          </p>
-        </>
-      ) : (
-        <ResultBody result={result} news={news} weightsAdjusted={response!.weights_adjusted} />
-      )}
-    </section>
+        {loading ? (
+          <SentimentGauge score={null} caption="Reading the article…" />
+        ) : !result ? (
+          <>
+            <SentimentGauge score={null} />
+            <p className="result-empty">
+              Add your holdings, paste a news story, and select Analyze to see how it lands on your portfolio.
+            </p>
+          </>
+        ) : (
+          <Verdict result={result} news={news} weightsAdjusted={response!.weights_adjusted} />
+        )}
+      </section>
+
+      <section className="card detail">
+        <h2>By holding</h2>
+        {scored ? (
+          <Detail result={scored} />
+        ) : (
+          <p className="result-empty">Each holding's score and the reason for it appear here.</p>
+        )}
+      </section>
+    </>
   );
 }
 
-function ResultBody({ result, news, weightsAdjusted }: { result: PortfolioResult; news: string; weightsAdjusted: boolean }) {
+function Verdict({ result, news, weightsAdjusted }: { result: PortfolioResult; news: string; weightsAdjusted: boolean }) {
   if (result.status === "error") {
     return (
       <>
@@ -86,7 +99,6 @@ function ResultBody({ result, news, weightsAdjusted }: { result: PortfolioResult
             commodity prices or interest rates.
           </p>
         )}
-        <HoldingBreakdown holdings={result.holdings} />
       </>
     );
   }
@@ -121,12 +133,20 @@ function ResultBody({ result, news, weightsAdjusted }: { result: PortfolioResult
       </div>
 
       {result.summary && <p className="summary">{result.summary}</p>}
+    </>
+  );
+}
 
-      <h3>By holding</h3>
+function Detail({ result }: { result: PortfolioResult }) {
+  return (
+    <>
       <HoldingBreakdown holdings={result.holdings} />
-
-      <Extras result={result} />
-      <HowItsScored result={result} />
+      {result.status === "ok" && (
+        <>
+          <Extras result={result} />
+          <HowItsScored result={result} />
+        </>
+      )}
     </>
   );
 }
