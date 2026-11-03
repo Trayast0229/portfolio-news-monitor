@@ -71,6 +71,12 @@ describe("mergeHistory", () => {
     expect(next.map((e) => e.id)).toEqual(["b"]);
   });
 
+  it("treats holding order as the same run", () => {
+    const reordered = [...HOLDINGS].reverse();
+    const next = mergeHistory([entry("a", "Same story")], entry("b", "Same story", ["finbert"], reordered), 20);
+    expect(next.map((e) => e.id)).toEqual(["b"]);
+  });
+
   it("caps the list at the limit", () => {
     const old = [entry("a", "One"), entry("b", "Two")];
     expect(mergeHistory(old, entry("c", "Three"), 2).map((e) => e.id)).toEqual(["c", "a"]);

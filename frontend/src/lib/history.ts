@@ -5,10 +5,11 @@ import type { HoldingInput, PortfolioResult, TickerMatch } from "./api";
 import { zoneFor } from "./gauge";
 import type { HistoryEntry } from "./storage";
 
-// Two entries are the same run when the story, holdings and engines match.
+// Two entries are the same run when the story, holdings and engines match, in any order.
 function runKey(entry: HistoryEntry): string {
+  const holdings = [...entry.holdings].sort((a, b) => a.ticker.localeCompare(b.ticker));
   const engines = entry.response.results.map((r) => r.engine).sort();
-  return JSON.stringify([entry.news.trim(), entry.holdings, engines]);
+  return JSON.stringify([entry.news.trim(), holdings, engines]);
 }
 
 /** Adds an entry to the top, dropping any earlier copy of the same run. */
