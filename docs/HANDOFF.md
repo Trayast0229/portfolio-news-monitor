@@ -1,8 +1,8 @@
 # 交接文件：Portfolio News Monitor（澳股持股組合新聞監測器）
 
-最後更新：2026-10-27。對象：接手這個專案的下一段 Claude Code 對話。
+最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：上一段對話（2026-10-24 到 2026-10-27）做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下「抓文章」「前端」「前後端連線」三區還沒查，見第 6 節。那段對話**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」，建議先做。
+**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題但還沒修，清單與建議順序在第 6 節「已找到、待修」，從第 1 項開始。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
 
 ## 1. 這是什麼、為什麼做
 
@@ -138,10 +138,29 @@ README.md
 - 同時輸入「BHP」與「BHP.AX」，前端不擋，但後端回的訊息清楚。
 - 編輯器「Total」只顯示到小數一位，例如 100.54 顯示「100.5%」卻同時提示會縮放。
 
-**還沒查**
-- **抓文章**：非 UTF-8 編碼、中文或其他語言網頁、只有標題的頁面、轉址到其他網域、`http` 轉 `https`、很慢的網站。
-- **前端**：localStorage 資料損壞或被清空時能否正常開啟；歷史紀錄滿 20 筆；快速連按 Analyze 或 Fetch；鍵盤操作與螢幕閱讀器標籤；手機寬度。
-- **前後端連線**：後端沒開、分析途中後端重啟時的錯誤訊息。
+**已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單，建議修正順序：1 → 4 → 7＋5 → 8＋6 → 2 → 其餘）
+
+前端
+1. **localStorage 資料形狀不對就整頁白畫面**（已確認，最嚴重）。[storage.ts](../frontend/src/lib/storage.ts) 的 `read()` 只擋 JSON 解析錯誤，不檢查形狀；`pnm.holdings` 存成 `null` 或 `{}` 時，到 `HoldingsEditor` 的 `holdings.map` 才當掉。`pnm.history`、`pnm.engines` 同理（例如 `["gpt"]` 會送到後端才被擋）。重現：Console 執行 `localStorage.setItem("pnm.holdings","null")` 後重新整理。
+2. **晚到的回應蓋掉新內容**（已確認）。`App.tsx` 的 `fetchStory()`：抓文章途中改點範例或改打文字，舊請求回來仍會覆寫文字框與網址欄。`run()` 同理：分析途中點歷史紀錄，回來的結果會蓋掉右側，和左側的新聞對不上。
+3. **歷史紀錄記到沒抓過的網址**（已確認，影響小）。`run()` 直接存網址欄的內容，即使那個網址沒按 Fetch、文字是另外貼的。
+- 推測沒問題、補測試確認即可：快速連按 Analyze／Fetch（按鈕會停用，`fetchStory` 也有擋）；歷史滿 20 筆（`mergeHistory` 有 `slice`）。
+- `crypto.randomUUID()`（`storage.ts` 的 `addHistory`）只在 https 或 localhost 可用；用區網 IP 或 http 部署時，分析成功卻會顯示錯誤（推測，目前開發伺服器不對區網開放）。
+- 結果區的引擎切換宣告為 `role="tablist"`，但不能用方向鍵切換（`ResultPanel.tsx`），要用 VoiceOver 實測。
+
+前後端連線
+4. **後端比前端晚好時，持股全部顯示「Not in ASX list」直到重新整理**（已確認，Start app 時常見，因為後端要載 PyTorch）。`HoldingsEditor.tsx` 查公司名稱前就把代號加進 `requested`，失敗被 `catch` 吞掉後不會重查。`App.tsx` 的健康檢查失敗後也不重試，所以「FinBERT is loading」提示不會出現。
+5. **後端自己出錯也被說成「後端沒開」**（已確認）。`api.ts` 把所有 5xx 都顯示成「Make sure the backend is running on port 8000」。第 7 項就是會觸發它的例子。
+6. **前端請求沒有逾時**（已確認）。`api.ts` 的 `fetch` 沒有時間上限，後端卡住時按鈕會一直停在「Fetching…」或「Analyzing…」，和第 8 項同根源。
+
+抓文章（`backend/app/article.py`）
+7. **`Content-Length` 不是數字就回 500**（已確認，`int("abc")` 會丟 `ValueError`，不是 `ArticleError`）。位置在 `_check_response()`。
+8. **慢網站沒有總時間上限**（已確認）。`httpx.Timeout(10.0)` 是每一步各自的上限，網站每 9 秒送一點資料就永遠不逾時；`_check_public()` 裡的 DNS 查詢也沒有時間限制。
+9. **非 UTF-8 網頁可能亂碼**（推測）。`_extract()` 把原始 bytes 交給 trafilatura 自己猜編碼，沒有傳入回應標頭的 charset。用 Big5、Shift_JIS、windows-1252 的假網頁測。
+10. **轉址到非網頁位址時錯誤訊息不對**（已確認，影響小）。轉到 `ftp://` 時沿用 `_parse()` 的「Enter a full web address…」，但使用者貼的網址是對的。
+11. **非英文文章**（產品取捨，待使用者決定）。FinBERT 只懂英文，中文文章大概會判為無關；要不要偵測到非英文時提醒，先問使用者。
+
+已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。
 
 ### 其他備註
 - 開發模式的 React StrictMode 會讓請求發兩次，只發生在開發環境，不影響正式版。
@@ -177,5 +196,6 @@ README.md
 - 先寫測試再實作（TDD）。後端測試一律 mock，不下載模型、不呼叫 API。
 - 介面文字用英文、句首大寫，避免全大寫標籤，不放 emoji。
 - 日常開發流程（VS Code 任務、檢查改動、commit、退回）寫在 `docs/WORKFLOW.md`，請照著做。
+- 使用者裝了 pstack plugin（使用者層級，不在 repo 裡；自動注入 poteto-mode 的 session hook 已關閉，superpowers 目前停用）。修 bug 用 `/pstack:tdd`，commit 前用 `/pstack:blast-radius`。pstack 的做法和本檔衝突時以本檔為準，並先問使用者。會同時跑多個模型的指令（`interrogate`、`arena`、`architect`、`thermos`）費用較高，使用者沒要求時不要用。pstack 若在專案裡新增檔案，commit 前先讓使用者確認。
 - **這個 repo 是公開的**：commit 的檔案裡不要寫入本機絕對路徑、對使用者的個人描述、信箱或任何金鑰。路徑一律用相對專案根目錄的寫法。
 - 修好的東西先在本機 commit；**使用者說要上傳時才 `git push`**。
