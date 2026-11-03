@@ -73,18 +73,25 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = TIME
   const cancel = () => ctrl.abort();
   if (init.signal?.aborted) cancel();
   init.signal?.addEventListener("abort", cancel, { once: true });
-  let res: Response;
   try {
-    res = await fetch(path, { ...init, signal: ctrl.signal });
-  } catch {
-    throw new Error(
-      timedOut
-        ? "The analysis server took too long to answer. Try again."
-        : `Can't reach the analysis server. Check your connection and try again.${BACKEND_HINT}`,
-    );
+    return await send<T>(path, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if (timedOut) throw new Error("The analysis server took too long to answer. Try again.");
+    throw e;
   } finally {
     clearTimeout(timer);
     init.signal?.removeEventListener("abort", cancel);
+  }
+}
+
+// Sends one request and reads the reply, body included, so the timeout and
+// the caller's cancel in `request` cover a reply that stalls halfway too.
+async function send<T>(path: string, init: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(path, init);
+  } catch {
+    throw new Error(`Can't reach the analysis server. Check your connection and try again.${BACKEND_HINT}`);
   }
   if (!res.ok) {
     // The dev proxy answers 5xx with a plain-text body when the backend is down.
@@ -101,7 +108,7 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = TIME
     }
     throw new Error(detail);
   }
-  return res.json() as Promise<T>;
+  return (await res.json()) as T;
 }
 
 export function getHealth() {

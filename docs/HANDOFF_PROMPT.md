@@ -6,9 +6,9 @@
 
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認前後端是否在執行。沒有的話照 HANDOFF.md 第 5 節啟動，或請使用者用 VS Code 的 Start app 任務啟動。
-2. 執行後端 pytest 和前端 npm test，確認目前全部通過，記下測試數量作為起點（上次結束時：後端 170、前端 53）。
-3. 用 `git log origin/main..HEAD --oneline` 確認還沒 push 的 commit（上次結束時有 13 個）。
-4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：thermo-nuclear review 已跑過，請使用者決定它找到的前端「讀回應內容沒有逾時」要修還是記到「已知但不修」（HANDOFF.md 第 6 節），處理後使用者同意才 push。
+2. 執行後端 pytest 和前端 npm test，確認目前全部通過，記下測試數量作為起點（上次結束時：後端 170、前端 55）。
+3. 用 `git log origin/main..HEAD --oneline` 確認還沒 push 的 commit（上次結束時有 14 個）。
+4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：除錯與 thermo-nuclear review 都已完成，使用者同意後 push；之後可以開始 HANDOFF.md 第 6 節的「上線前必做」。
 
 工作流程（HANDOFF.md 第 9 節有完整說明）：
 - 每個 bug 由使用者依序觸發：`/pstack:tdd 修第 N 項：…` → 使用者看改動、在瀏覽器測 → `/pstack:blast-radius` → （可省略）`/code-review low` → 使用者說「commit」。每一步做完就停下來等，不要自己往下走。
