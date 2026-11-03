@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題但還沒修，清單與建議順序在第 6 節「已找到、待修」，從第 1 項開始。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
+**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題。2026-11-03 修好第 1 項（localStorage 白畫面），並在 Safari 發現新的第 12 項（指針歪掉）；清單與建議順序在第 6 節「已找到、待修」，從第 12 項開始。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
 
 ## 1. 這是什麼、為什麼做
 
@@ -16,7 +16,7 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，156 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，39 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，43 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -63,7 +63,7 @@ frontend/
   src/lib/holdings.ts(+test) 哪些持股列算數（有代號才算）、權重總和、送出前的持股檢查（純函式）
   src/lib/assessment.ts(+test) 「Not assessed／Not affected」標籤與「Claude skipped …」提醒文字（純函式）
   src/lib/format.ts          百分比與時間的顯示格式
-  src/lib/storage.ts         localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch
+  src/lib/storage.ts(+test) localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch，讀取時檢查形狀
   src/lib/examples.ts        3 則虛構範例新聞
   src/styles.css             設計 token、亮暗主題、RWD
 docs/
@@ -131,17 +131,19 @@ README.md
 - **評分邊界**：前後端分區一致；權重總和 99.5／100.5 視為 100；30 檔上限正常。修正：編輯器總和不算沒填代號的列、前端擋下權重 >100、.5 一律進位。
 - **FinBERT 比對**：修正：直撇號與彎撇號、新聞縮寫 ticker（AFL、NRL、SPP 等 20 個）、James Hardie 與 a2 Milk 別名、地名與賽事排除、`Ltd.`／`U.S.` 不斷句、同一句多家公司按轉折詞切開、長句只取提及處前後、切不開時在原因加提醒。
 - **Claude 引擎**：修正：`BHP.AX`／`ASX: BHP` 比對、回答沒有任何持股時重試再報錯、逾時訊息、API 錯誤說明、重試次數 2 → 1、漏掉的持股顯示「Not assessed」。
+- **前端**（2026-11-03 起）：修正：localStorage 形狀不對時改用預設值或丟掉壞的那筆，不再白畫面（第 1 項，已在 Safari 實測）。清空的權重存成 `null`，讀回來是 `NaN`。引擎名稱用 `Object.hasOwn` 比對，`"toString"` 這類內建名稱不算。
 
 **已知但不修**
 - 人名會被當成公司（「Sarah Goodman」→ Goodman Group）、沒寫 FC 的球隊名（「Santos beat Corinthians」）。
 - 同一句提到多家公司且沒有轉折詞（「BHP rose and CBA fell」）時分數相同，只加提醒。使用者決定不用 LLM 切句。
 - 同時輸入「BHP」與「BHP.AX」，前端不擋，但後端回的訊息清楚。
 - 編輯器「Total」只顯示到小數一位，例如 100.54 顯示「100.5%」卻同時提示會縮放。
+- 歷史紀錄只檢查到每個結果的外層欄位，不檢查每檔持股分數裡的欄位（例如 `reason`）。手動改壞這些欄位時，點開那筆紀錄仍可能出錯。
 
-**已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單，建議修正順序：1 → 4 → 7＋5 → 8＋6 → 2 → 其餘）
+**已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單，建議修正順序：12 → 4 → 7＋5 → 8＋6 → 2 → 其餘）
 
 前端
-1. **localStorage 資料形狀不對就整頁白畫面**（已確認，最嚴重）。[storage.ts](../frontend/src/lib/storage.ts) 的 `read()` 只擋 JSON 解析錯誤，不檢查形狀；`pnm.holdings` 存成 `null` 或 `{}` 時，到 `HoldingsEditor` 的 `holdings.map` 才當掉。`pnm.history`、`pnm.engines` 同理（例如 `["gpt"]` 會送到後端才被擋）。重現：Console 執行 `localStorage.setItem("pnm.holdings","null")` 後重新整理。
+12. **Safari 的儀表盤指針歪掉**（已在 Safari 實測，2026-11-03 新增）。指針沒有從圓心出發：沒分數時是一根直線偏在圓圈左邊，96 分時是一根短線浮在圓圈上方。推測原因：[SentimentGauge.tsx](../frontend/src/components/SentimentGauge.tsx) 的 `transformOrigin: "160px 160px"` 被 Safari 當成螢幕像素，不是 SVG 座標；儀表盤沒畫成剛好 320 像素寬時，旋轉中心就偏掉。建議修法：指針畫在原點、以 `0 0` 旋轉，再整組移到圓心。
 2. **晚到的回應蓋掉新內容**（已確認）。`App.tsx` 的 `fetchStory()`：抓文章途中改點範例或改打文字，舊請求回來仍會覆寫文字框與網址欄。`run()` 同理：分析途中點歷史紀錄，回來的結果會蓋掉右側，和左側的新聞對不上。
 3. **歷史紀錄記到沒抓過的網址**（已確認，影響小）。`run()` 直接存網址欄的內容，即使那個網址沒按 Fetch、文字是另外貼的。
 - 推測沒問題、補測試確認即可：快速連按 Analyze／Fetch（按鈕會停用，`fetchStory` 也有擋）；歷史滿 20 筆（`mergeHistory` 有 `slice`）。
