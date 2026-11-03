@@ -1,7 +1,7 @@
 // Pure helpers for the recent-analyses list, kept apart from storage so they
 // can be tested without a browser.
 
-import type { HoldingInput, PortfolioResult } from "./api";
+import type { HoldingInput, PortfolioResult, TickerMatch } from "./api";
 import { zoneFor } from "./gauge";
 import type { HistoryEntry } from "./storage";
 
@@ -27,4 +27,17 @@ export function historyScore(result: PortfolioResult): { text: string; className
 export function tickersToLookUp(holdings: HoldingInput[], requested: Set<string>): string[] {
   const tickers = holdings.map((h) => h.ticker.trim()).filter((t) => t && !requested.has(t));
   return [...new Set(tickers)];
+}
+
+// Looks up one ticker's company name. A failed lookup, for example while the
+// backend is still starting, is tried again every few seconds until it works.
+export function lookUpName(
+  ticker: string,
+  search: (ticker: string) => Promise<TickerMatch[]>,
+  found: (matches: TickerMatch[]) => void,
+  retryMs = 3000,
+): void {
+  search(ticker)
+    .then(found)
+    .catch(() => setTimeout(() => lookUpName(ticker, search, found, retryMs), retryMs));
 }

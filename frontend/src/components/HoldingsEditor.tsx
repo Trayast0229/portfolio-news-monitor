@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { searchTickers, type HoldingInput, type TickerMatch } from "../lib/api";
-import { tickersToLookUp } from "../lib/history";
+import { lookUpName, tickersToLookUp } from "../lib/history";
 import { weightTotal } from "../lib/holdings";
 
 interface Props {
@@ -24,7 +24,7 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
   useEffect(() => {
     tickersToLookUp(holdings, requested.current).forEach((t) => {
       requested.current.add(t);
-      searchTickers(t).then(remember).catch(() => {});
+      lookUpName(t, searchTickers, remember);
     });
   }, [tickers]);
 
@@ -39,7 +39,9 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
         setSuggestions(m);
         remember(m);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!ctrl.signal.aborted) lookUpName(q.trim(), searchTickers, remember);
+      });
   }
 
   const update = (i: number, patch: Partial<HoldingInput>) =>

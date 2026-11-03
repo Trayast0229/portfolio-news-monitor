@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EngineName, HoldingInput, PortfolioResult } from "./api";
-import { historyScore, mergeHistory, tickersToLookUp } from "./history";
+import { historyScore, lookUpName, mergeHistory, tickersToLookUp } from "./history";
 import type { HistoryEntry } from "./storage";
 
 function result(engine: EngineName, patch: Partial<PortfolioResult> = {}): PortfolioResult {
@@ -105,5 +105,21 @@ describe("tickersToLookUp", () => {
 
   it("skips blank rows", () => {
     expect(tickersToLookUp([{ ticker: " ", weight: 10 }], new Set())).toEqual([]);
+  });
+});
+
+describe("lookUpName", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("tries again when the backend is not ready yet", async () => {
+    vi.useFakeTimers();
+    const bhp = [{ ticker: "BHP", name: "BHP Group" }];
+    const search = vi.fn().mockRejectedValueOnce(new Error("Backend not running")).mockResolvedValue(bhp);
+    const found = vi.fn();
+
+    lookUpName("BHP", search, found);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(found).toHaveBeenCalledWith(bhp);
   });
 });
