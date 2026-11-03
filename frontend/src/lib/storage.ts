@@ -102,8 +102,15 @@ export const loadHistory = () =>
     Array.isArray(v) ? v.map(parseEntry).filter((e): e is HistoryEntry => e !== null) : null,
   );
 
+// crypto.randomUUID only exists on https and localhost, not on a LAN address
+// such as http://192.168.1.5:5173 used to try the app on a phone.
+const newId = () =>
+  typeof crypto?.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 export function addHistory(entry: Omit<HistoryEntry, "id" | "at">): HistoryEntry[] {
-  const full: HistoryEntry = { ...entry, id: crypto.randomUUID(), at: new Date().toISOString() };
+  const full: HistoryEntry = { ...entry, id: newId(), at: new Date().toISOString() };
   const next = mergeHistory(loadHistory(), full, HISTORY_LIMIT);
   write(HISTORY_KEY, next);
   return next;

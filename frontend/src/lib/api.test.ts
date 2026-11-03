@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchArticle, searchTickers } from "./api";
+import { fetchArticle, searchTickers, watchHealth } from "./api";
 
 describe("requests", () => {
   afterEach(() => {
@@ -68,5 +68,20 @@ describe("requests", () => {
     cancelled.abort();
 
     await expect(searchTickers("BHP", cancelled.signal)).rejects.toThrow();
+  });
+});
+
+describe("engine status", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("stops checking once stopped, even with a check still on its way", async () => {
+    vi.useFakeTimers();
+    let fail!: () => void;
+    const check = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = () => reject(new Error("down")))));
+    const stop = watchHealth(() => {}, check, 3000);
+    stop(); // the page closed (or React's StrictMode remounted it) before the backend answered
+    fail();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(check).toHaveBeenCalledTimes(1);
   });
 });

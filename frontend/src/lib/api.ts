@@ -115,6 +115,35 @@ export function getHealth() {
   return request<{ engines: Record<EngineName, EngineStatus> }>("/api/health");
 }
 
+// Checks engine status every few seconds until the backend is up and FinBERT
+// has finished loading. Returns a function that stops checking.
+export function watchHealth(
+  onStatus: (engines: Partial<Record<EngineName, EngineStatus>>) => void,
+  check = getHealth,
+  retryMs = 3000,
+): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false; // a check already on its way must not schedule another
+  const again = () => {
+    if (!stopped) timer = setTimeout(poll, retryMs);
+  };
+  const poll = () =>
+    check()
+      .then((h) => {
+        onStatus(h.engines);
+        if (h.engines.finbert === "not_loaded") again();
+      })
+      .catch(() => {
+        onStatus({});
+        again();
+      });
+  poll();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
+}
+
 export function searchTickers(q: string, signal?: AbortSignal) {
   return request<TickerMatch[]>(`/api/tickers?q=${encodeURIComponent(q)}`, { signal });
 }

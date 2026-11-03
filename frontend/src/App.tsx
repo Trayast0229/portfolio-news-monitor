@@ -6,7 +6,7 @@ import {
   ENGINE_NAMES,
   analyze,
   fetchArticle,
-  getHealth,
+  watchHealth,
   type AnalyzeResponse,
   type EngineName,
   type EngineStatus,
@@ -69,22 +69,7 @@ export default function App() {
   useEffect(() => saveHoldings(holdings), [holdings]);
   useEffect(() => saveEngines(engines), [engines]);
 
-  // Poll engine status until the backend is up and FinBERT has finished loading.
-  useEffect(() => {
-    let timer: number | undefined;
-    const check = () =>
-      getHealth()
-        .then((h) => {
-          setStatus(h.engines);
-          if (h.engines.finbert === "not_loaded") timer = window.setTimeout(check, 3000);
-        })
-        .catch(() => {
-          setStatus({});
-          timer = window.setTimeout(check, 3000);
-        });
-    check();
-    return () => window.clearTimeout(timer);
-  }, []);
+  useEffect(() => watchHealth(setStatus), []);
 
   function toggleEngine(name: EngineName) {
     setEngines((prev) => (prev.includes(name) ? prev.filter((e) => e !== name) : [...prev, name]));

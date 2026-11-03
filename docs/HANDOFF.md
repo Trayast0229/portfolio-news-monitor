@@ -16,7 +16,7 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，188 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，57 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，59 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -129,6 +129,7 @@ README.md
 - **評分邊界**：前後端分區一致；權重總和 99.5／100.5 視為 100；30 檔上限正常。修正：編輯器總和不算沒填代號的列、前端擋下權重 >100、.5 一律進位。總和剛好 99.5／100.5 時的浮點誤差（Codex C6，2026-11-03）：Python 的 `sum()` 有誤差補償、JavaScript 逐一相加，兩邊錯在不同組合（`0.35, 19.58, 79.57` 後端算成 99.4999…、`30.6, 34.45, 34.45` 前端算成 99.5000…1），編輯器和結果的縮放提示會互相矛盾。後端 `normalize_weights()` 與前端 `weightTotal()` 都先取到小數 9 位再比較；已用 55,140 組隨機權重確認前後端答案全部一致、權重本身不變。
 - **FinBERT 比對**：修正：直撇號與彎撇號、新聞縮寫 ticker（AFL、NRL、SPP 等 20 個）、James Hardie 與 a2 Milk 別名、地名與賽事排除、`Ltd.`／`U.S.` 不斷句、同一句多家公司按轉折詞切開、長句只取提及處前後、切不開時在原因加提醒。`GPT` 列為縮寫代號（Codex C4，2026-11-03）：AI 新聞的「GPT-5」原本被當成 GPT Group 的消息，真 FinBERT 給 92.5% 看好；現在要寫「GPT Group」、「ASX: GPT」或「GPT.AX」才算。已用腳本比對全部 2,051 家公司各 9 種寫法，只有 GPT 單獨出現的 4 句結果改變。
 - **Claude 引擎**：修正：`BHP.AX`／`ASX: BHP` 比對、回答沒有任何持股時重試再報錯、逾時訊息、API 錯誤說明、重試次數 2 → 1、漏掉的持股顯示「Not assessed」。格式錯誤也重試（Codex C10，2026-11-03 收自外部 PR #1，作者 RyanT0306）：anthropic SDK 在 `messages.parse()` 裡就驗證 JSON，截斷或形狀不對時丟出 pydantic `ValidationError`，不會回 `parsed_output=None`；`_call()` 接住後重試一次，再失敗顯示「didn't match the expected format」。純文字的拒絕一樣走這條路，所以仍顯示格式錯誤，不是「Claude declined…」。
+- **區網與輪詢**（2026-11-03，參考外部 PR #1）：`crypto.randomUUID()` 只在 https 或 localhost 有，手機用區網 http 網址打開時，分析成功卻顯示 `crypto.randomUUID is not a function`；`storage.ts` 的 `newId()` 沒有時改用時間加亂數（編號只當 React key，讀回只檢查是文字）。引擎狀態輪詢從 `App.tsx` 搬到 `api.ts` 的 `watchHealth()`，停止後還在路上的那次檢查不再排下一次，開發模式 StrictMode 掛載兩次時不再同時輪詢兩份（後端關著時 9.5 秒內 8 次 → 5 次，已用 `/verify` 實測；後端晚啟動時仍依序顯示載入中、準備好後停止輪詢）。
 - **FinBERT 沒安裝**（2026-11-03 收自外部 PR #1）：沒裝 transformers／torch 時，沒提到任何持股的新聞不會載入模型，結果顯示「Not related」，好像 FinBERT 讀過一樣。`_analyze_sync()` 先檢查 `status()`，沒安裝就丟 EngineError。訊息改成給訪客看的「FinBERT isn't installed on the analysis server…」，不叫訪客跑 `pip install`（安裝步驟在 README）。`App.tsx` 的 FinBERT 提示仍寫 `pip install`，留給「上線前必做」一起改。
 - **公開 repo**（Codex R1，2026-11-03）：還沒 push 的 `docs/HANDOFF_PROMPT.md` 曾寫入對使用者的個人描述。使用者選擇改寫還沒 push 的 23 個 commit（`git filter-branch --tree-filter`，先建 `backup-before-r1` 分支），15 個 commit 只差那一行、訊息與作者不變，其他 8 個 hash 不變；改寫後沒有任何 commit 含那句話，測試全部通過。push 成功後可刪掉 `backup-before-r1`。
 - **`/verify` 工具**（Codex R6，2026-11-03）：`cdp.mjs` 等 Chrome 回應沒有上限，分頁卡住或當掉時 `waitFor()` 永遠等（用真 Chrome 的無限迴圈與 `Page.crash` 重現，給 2 秒、10 秒後仍在等）。`send()` 每個請求最多等 30 秒（第三個參數可改），`waitFor()` 把剩下的時間傳下去，連線關閉時還在等的請求馬上報錯。修好後兩種情況都在 2.0 秒停止；等 35 秒的 `waitFor` 與正常的 FinBERT 分析流程結果和舊版相同，關閉後程式照常馬上結束。
@@ -145,7 +146,7 @@ README.md
 - 編輯器「Total」只顯示到小數一位，例如 100.54 顯示「100.5%」卻同時提示會縮放。
 - 歷史紀錄只檢查到每個結果的外層欄位，不檢查每檔持股分數裡的欄位（例如 `reason`）。手動改壞這些欄位時，點開那筆紀錄仍可能出錯。
 - 第 3 項修好前存的歷史紀錄可能帶著沒抓過的網址；點開這種舊紀錄再分析，新紀錄會沿用那個網址。最多 20 筆，會被新紀錄擠掉。
-- 第 4 項的重試沒有次數上限、也不能取消（`/code-review low` 指出，影響小）：後端沒開時打代號，每個打到一半、查詢失敗的字（B、BH、BHP）都會各自每 3 秒重試，直到後端好；超過 40 字的代號（只有手動改壞 localStorage 才會有）會一直收到 422 而永遠重試；開發模式的 StrictMode 下健康檢查可能同時輪詢兩份。後端一好就停，持股編輯器也不會被卸載。
+- 第 4 項的重試沒有次數上限、也不能取消（`/code-review low` 指出，影響小）：後端沒開時打代號，每個打到一半、查詢失敗的字（B、BH、BHP）都會各自每 3 秒重試，直到後端好；超過 40 字的代號（只有手動改壞 localStorage 才會有）會一直收到 422 而永遠重試。後端一好就停，持股編輯器也不會被卸載。
 - 轉址的 `Location` port 不是數字（`http://a.example:x/`）時，httpx 先擋下並轉成 `RemoteProtocolError`，畫面顯示「The site didn't respond」，不精確但不算錯。
 - ISO-2022-JP 編碼的日文網頁仍會亂碼：它只用 7-bit byte，剛好也是合法 UTF-8，`_decode()` 第一步就照 UTF-8 讀（GitHub 上的舊版也一樣）。這種編碼現在主要用在 email。
 - `<script>` 裡出現 `<!--` 字樣、放在真的 `<meta charset>` 前面且後面沒有 `-->` 時，R4 的修正會把它當成註解開頭，連 meta 一起忽略（瀏覽器不會）。要網頁不是 UTF-8、標頭編碼又和 meta 不同才會亂碼（已實測）。meta 編碼照標準要寫在前 1024 bytes，實務上幾乎是 head 第一行，16 個真實網站都沒有這種情況。
@@ -164,7 +165,6 @@ README.md
 
 前端
 - 推測沒問題、補測試確認即可：快速連按 Analyze／Fetch（按鈕會停用，`fetchStory` 也有擋）；歷史滿 20 筆（`mergeHistory` 有 `slice`）。
-- `crypto.randomUUID()`（`storage.ts` 的 `addHistory`）只在 https 或 localhost 可用；用區網 IP 或 http 部署時，分析成功卻會顯示錯誤（推測，目前開發伺服器不對區網開放）。
 - 結果區的引擎切換宣告為 `role="tablist"`，但不能用方向鍵切換（`ResultPanel.tsx`），要用 VoiceOver 實測。
 
 

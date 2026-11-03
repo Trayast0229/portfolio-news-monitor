@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PortfolioResult } from "./api";
-import { DEFAULT_HOLDINGS, loadEngines, loadHistory, loadHoldings, type HistoryEntry } from "./storage";
+import { DEFAULT_HOLDINGS, addHistory, loadEngines, loadHistory, loadHoldings, type HistoryEntry } from "./storage";
 
 // Vitest runs in Node, which has no localStorage, so each test gets a fresh in-memory one.
 let store: Map<string, string>;
@@ -74,5 +74,16 @@ describe("loading saved data", () => {
     ]);
     expect(loadEngines()).toEqual([]);
     expect(loadHistory()).toEqual([entry]);
+  });
+});
+
+describe("saving history", () => {
+  it("works without crypto.randomUUID, which plain-http LAN addresses don't have", () => {
+    vi.stubGlobal("crypto", {});
+    const response = { weights_adjusted: false, results: [result] };
+    addHistory({ news: "BHP rose.", holdings: [{ ticker: "BHP", weight: 100 }], response });
+    const saved = addHistory({ news: "CBA fell.", holdings: [{ ticker: "CBA", weight: 100 }], response });
+    expect(saved.map((e) => typeof e.id)).toEqual(["string", "string"]);
+    expect(saved[0].id).not.toBe(saved[1].id);
   });
 });
