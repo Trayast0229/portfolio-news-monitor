@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -121,9 +121,7 @@ README.md
 
 每個 bug 先重現、寫出會失敗的測試，再修，每個單獨 commit。進度如下（2026-11-03）：
 
-**待瀏覽器確認**（上一段對話沒有瀏覽器工具，以下只用測試與 build 驗證過）
-- 持股編輯器：清空某列代號但保留權重時，「Total」應該跟著變少並提示會縮放。
-- 某檔權重打 150 按 Analyze，應顯示「Keep each weight at 100% or less.」。
+**待瀏覽器確認**（以下只用測試與 build 驗證過；現在可以用 `/verify` 自己操作瀏覽器確認，見第 7 節。持股編輯器清空代號時 Total 變少、權重 150 的錯誤訊息，已於 2026-11-03 用 `/verify` 確認）
 - 只勾 FinBERT，貼「BHP shares surged to a record and CBA shares plunged after a profit warning.」（前面補一句湊滿 50 字），兩檔的原因後面都應出現「A sentence used here also names …」提醒。
 - 「Not assessed」狀態與「Claude skipped …」提醒：真實 Claude 很少漏回持股，不容易在瀏覽器重現；後端已用模擬回答驗證 API 回傳正確。
 
@@ -199,6 +197,7 @@ README.md
 - **MockTransport 的 `httpx.Response(content=...)` 會在建立時就讀完並解壓縮內容**，所以 `test_article.py` 的 `fetch()` 先經過 `unread()` 改成未讀的 stream，壓縮的假網頁用 `packed()` 直接給原始 bytes；不然炸彈在測試裡就先解開了，`aiter_raw()` 也會丟 `StreamConsumed`。
 - **用真實連線測抓文章**：在腳本裡用 `http.server` 開本機伺服器，回想測的標頭與內容（編碼、轉址、送一半就停），並把 `article._check_public` 暫時換成什麼都不做的函式，因為本機位址會被擋。MockTransport 會跳過 httpx 底層的檢查，結論可能不一樣（第 7 項就是這樣撤回的）。
 - **後端的同步計算會卡住整台伺服器**：`async` 函式裡的解碼、trafilatura 抽文字都在事件迴圈上執行，`asyncio.timeout` 打斷不了。懷疑某段很慢時，另開一個每 0.1 秒跳一次的 task 量最長停頓（charset=punycode 就是這樣量出 59 秒）。
+- **用 `/verify` 在真瀏覽器操作網站**（2026-11-03 起）：`.claude/skills/verify/` 會在 8100／5174 開一份自己的網站（Claude 關閉、不花錢），用無頭 Chrome 點按鈕、打字並截圖，不碰使用者的 8000／5173。步驟、畫面元素的定位方式與 5 個功能的操作清單都在該資料夾的 `SKILL.md` 與 `features/`；證據存在系統暫存資料夾的 `pnm-verify-evidence/`。畫面改動修完後先自己跑一次，再請使用者在瀏覽器確認。
 - **跑前端真程式**：`cd frontend && npx vite-node 腳本.ts` 可以直接 import `src/lib` 的函式；`fetch` 用的是相對路徑，要先把 `globalThis.fetch` 包一層補上本機伺服器網址。
 - zsh 會把 `--include=*.py` 和 `echo =====` 當成特殊語法而報錯，前者加引號，後者別用。
 
