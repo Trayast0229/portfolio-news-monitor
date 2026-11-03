@@ -39,19 +39,29 @@ export async function connect() {
     waiting.delete(msg.id);
     msg.error ? pending.fail(new Error(`${pending.method}: ${msg.error.message}`)) : pending.ok(msg.result);
   };
-  const send = (method, params = {}) =>
+  ws.onclose = () => {
+    for (const pending of waiting.values()) pending.fail(new Error(`${pending.method}: the connection to Chrome closed`));
+    waiting.clear();
+  };
+  // A hung or crashed tab never replies, so every request gives up after `timeout` ms.
+  const send = (method, params = {}, timeout = 30_000) =>
     new Promise((ok, fail) => {
       const id = ++next;
-      waiting.set(id, { ok, fail, method });
       ws.send(JSON.stringify({ id, method, params }));
+      const timer = setTimeout(() => {
+        waiting.delete(id);
+        fail(new Error(`${method}: no reply from Chrome after ${timeout} ms; the tab may have hung or crashed`));
+      }, timeout);
+      const done = (settle) => (value) => (clearTimeout(timer), settle(value));
+      waiting.set(id, { ok: done(ok), fail: done(fail), method });
     });
 
-  const evaluate = async (expression) => {
-    const { result, exceptionDetails } = await send("Runtime.evaluate", {
-      expression,
-      returnByValue: true,
-      awaitPromise: true,
-    });
+  const evaluate = async (expression, timeout) => {
+    const { result, exceptionDetails } = await send(
+      "Runtime.evaluate",
+      { expression, returnByValue: true, awaitPromise: true },
+      timeout,
+    );
     if (exceptionDetails) throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
     return result.value;
   };
@@ -64,7 +74,7 @@ export async function connect() {
   const waitFor = async (expression, what, timeout = 30_000) => {
     const end = Date.now() + timeout;
     while (Date.now() < end) {
-      if (await evaluate(`Boolean(${expression})`)) return;
+      if (await evaluate(`Boolean(${expression})`, end - Date.now())) return;
       await new Promise((r) => setTimeout(r, 200));
     }
     throw new Error(`timed out after ${timeout} ms waiting for ${what}`);

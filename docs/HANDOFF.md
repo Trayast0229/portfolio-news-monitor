@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1、R2、R3、R4 已處理，**R6 修完並跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。之後請 Codex 多代理檢查一次，找到 10 個問題、全部重現，其中 8 個列在第 6 節「Codex 檢查找到、待修」，C1（壓縮炸彈）、C2、C4、C3、C6、C8 已修好。上傳前再請 Codex 審核還沒 push 的 commit，找到 R1–R6（第 6 節「Codex 上傳前審核找到、待修」），R1–R4、R6 已處理，**跑過 `/pstack:thermo-nuclear-review` 才 push**；「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話沒有瀏覽器工具，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」；**現在可以用 `/verify` 自己在無頭 Chrome 操作網站**（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -130,6 +130,7 @@ README.md
 - **FinBERT 比對**：修正：直撇號與彎撇號、新聞縮寫 ticker（AFL、NRL、SPP 等 20 個）、James Hardie 與 a2 Milk 別名、地名與賽事排除、`Ltd.`／`U.S.` 不斷句、同一句多家公司按轉折詞切開、長句只取提及處前後、切不開時在原因加提醒。`GPT` 列為縮寫代號（Codex C4，2026-11-03）：AI 新聞的「GPT-5」原本被當成 GPT Group 的消息，真 FinBERT 給 92.5% 看好；現在要寫「GPT Group」、「ASX: GPT」或「GPT.AX」才算。已用腳本比對全部 2,051 家公司各 9 種寫法，只有 GPT 單獨出現的 4 句結果改變。
 - **Claude 引擎**：修正：`BHP.AX`／`ASX: BHP` 比對、回答沒有任何持股時重試再報錯、逾時訊息、API 錯誤說明、重試次數 2 → 1、漏掉的持股顯示「Not assessed」。
 - **公開 repo**（Codex R1，2026-11-03）：還沒 push 的 `docs/HANDOFF_PROMPT.md` 曾寫入對使用者的個人描述。使用者選擇改寫還沒 push 的 23 個 commit（`git filter-branch --tree-filter`，先建 `backup-before-r1` 分支），15 個 commit 只差那一行、訊息與作者不變，其他 8 個 hash 不變；改寫後沒有任何 commit 含那句話，測試全部通過。push 成功後可刪掉 `backup-before-r1`。
+- **`/verify` 工具**（Codex R6，2026-11-03）：`cdp.mjs` 等 Chrome 回應沒有上限，分頁卡住或當掉時 `waitFor()` 永遠等（用真 Chrome 的無限迴圈與 `Page.crash` 重現，給 2 秒、10 秒後仍在等）。`send()` 每個請求最多等 30 秒（第三個參數可改），`waitFor()` 把剩下的時間傳下去，連線關閉時還在等的請求馬上報錯。修好後兩種情況都在 2.0 秒停止；等 35 秒的 `waitFor` 與正常的 FinBERT 分析流程結果和舊版相同，關閉後程式照常馬上結束。
 - **前端**（2026-11-03 起）：修正：localStorage 形狀不對時改用預設值或丟掉壞的那筆，不再白畫面（第 1 項，已在 Safari 實測）。Safari 儀表盤指針偏離圓心（第 12 項）：`transformOrigin` 用 px 時 Safari 當成螢幕像素，改成指針畫在原點、以 `0 0` 旋轉再移到圓心，Safari 與 Chrome 實測通過。清空的權重存成 `null`，讀回來是 `NaN`。引擎名稱用 `Object.hasOwn` 比對，`"toString"` 這類內建名稱不算。晚到的回應（第 2 項）：`App.tsx` 用 `edits` 計數，抓文章途中任何修改（打字、改網址、點範例或歷史）都讓那次抓取作廢；分析途中只有整則新聞被換掉（範例、歷史、抓到新文章）才不顯示結果，但仍存進歷史。歷史紀錄的網址（第 3 項）：`history.ts` 的 `storySource()`，只有網址欄與文字框都還是 Fetch 回來的原樣才存網址（使用者接受刪改內文後就不存網址）。兩項都已在瀏覽器實測。歷史紀錄只差持股順序（Codex C8，使用者 2026-11-03 決定算同一個分析）：`history.ts` 的 `runKey()` 先把持股照代號排序（複製一份，存下的紀錄仍是原本順序，點開時照原順序填回）。已用 20,000 組隨機歷史比對新舊版：只有「持股相同、只差順序」的舊紀錄被取代，沒有改動任何紀錄。
 - **前後端連線**（2026-11-03 起）：修正：後端比前端晚好時，查不到的公司名稱每 3 秒重查（`history.ts` 的 `lookUpName()`），健康檢查失敗也每 3 秒重試，所以後端一好名稱就自己出現、「FinBERT is loading」也會顯示（第 4 項，已在瀏覽器實測）。後端預料外的錯誤改回 JSON 的 `detail`（`main.py` 的 `unexpected_error`），前端會顯示「Something went wrong on the analysis server…」；Vite 代理在後端沒開時回的是空白 500，仍顯示「isn't available right now」（第 5 項）。抓文章整個過程（含 DNS 與轉址）最多 20 秒（`article.py` 的 `TOTAL_SECONDS`；`httpx.Timeout` 是每一步各自的上限，已用本機慢速伺服器實測會被拖住）。前端每個請求 30 秒、分析 2 分鐘（使用者 2026-11-03 決定；正常約 10 秒）後放棄並顯示「took too long」（第 8＋6 項）。前端的「port 8000」提示只在開發模式出現（`import.meta.env.DEV`），正式 build 裡沒有。讀回應內容也受逾時與取消保護（thermo-nuclear review 找到）：原本 `api.ts` 在收到標頭後就清掉計時器與取消監聽，內容卡住會永遠等；現在 `request()` 負責計時與取消、`send()` 送出並讀完內容。已用 Node 的真 fetch 與送一半就停的本機伺服器驗證（取消 0.5 秒結束、卡住 30 秒顯示「took too long」），8 種正常回應的結果與訊息和修改前相同。驗證錯誤不再回 500（Codex C3）：權重送 `1e309`、`-1e309`、`NaN` 時，FastAPI 預設的 422 回應會把收到的值放回 `input`，JSON 寫不出 inf／nan，變成 500。`main.py` 的 `invalid_request` 改成回同樣的錯誤清單、只拿掉 `input`；已用腳本比對三個 API 的 18 種錯誤請求，新舊回應除了 `input` 完全相同。`ctx` 只放 `models.py` 寫死的有限上下限與錯誤物件，不會再出同樣的問題。
 
@@ -152,9 +153,7 @@ README.md
 - 權重打 `1e-323` 這種極小正數會通過驗證，正規化後變成 0，相關新聞被回成「Unrelated」（Codex C7，已實測）。沒有人會這樣輸入。
 - 標成 `Content-Encoding: deflate` 卻送 raw deflate（沒有 zlib 標頭）的舊伺服器，C1 修正後會顯示「isn't a news page」，以前 httpx 讀得到（已實測）。現代網站幾乎都用 gzip，使用者 2026-11-03 決定不支援。
 - 瀏覽器的 localStorage 寫入失敗（例如空間滿了）時，`addHistory` 每次都從存檔重建清單，這次工作階段先前的紀錄會從畫面上消失（Codex C9，已用模擬的 `setItem` 例外實測）。只存 20 筆，現代瀏覽器很難碰到。
-
-**Codex 上傳前審核找到、待修**（2026-11-03 Codex 審核還沒 push 的 22 個 commit，Claude 用 Codex 的腳本重跑確認。使用者同意以下嚴重度與順序）
-- **R6【低】`/verify` 的 `cdp.mjs` 在 Chrome 分頁當掉時永遠等待**：`waitFor()` 等 `Runtime.evaluate` 回應時沒有時間上限（看程式碼確認，Codex 用真 Chrome 重現）。只影響開發用的驗證工具。
+- `cdp.mjs` 的兩個訊息問題（R6 修正後 `/code-review low` 找到，使用者 2026-11-03 決定先不修，只影響開發工具出錯時）：`waitFor()` 到期前最後一次檢查只剩幾毫秒時，會報「no reply from Chrome … hung or crashed」，而不是自己的「timed out … waiting for …」；連線關閉後再呼叫 `send()`，WebSocket 照標準默默丟掉訊息、不報錯，要等滿 30 秒才報「no reply」，而不是馬上說連線已關。
 
 **Codex 檢查找到、待修**（2026-11-03 由 Codex 多代理檢查找出，Claude 用真實程式全部重跑確認。嚴重度與順序由使用者同意。依建議順序列出）
 - **C5【低】數字很多的長句，FinBERT 看不到公司名稱**：`finbert_engine.py` 的 `_focus()` 用空白分詞數字數，模型上限是 512 個 WordPiece token。104 個字、90 個金額連成一句時有 1,098 個 token，`BHP` 被截掉，真 FinBERT 給 91% 中立（單獨那句是 94% 看好）。真實新聞很少這樣寫。
@@ -203,7 +202,7 @@ README.md
 - **MockTransport 的 `httpx.Response(content=...)` 會在建立時就讀完並解壓縮內容**，所以 `test_article.py` 的 `fetch()` 先經過 `unread()` 改成未讀的 stream，壓縮的假網頁用 `packed()` 直接給原始 bytes；不然炸彈在測試裡就先解開了，`aiter_raw()` 也會丟 `StreamConsumed`。
 - **用真實連線測抓文章**：在腳本裡用 `http.server` 開本機伺服器，回想測的標頭與內容（編碼、轉址、送一半就停），並把 `article._check_public` 暫時換成什麼都不做的函式，因為本機位址會被擋。MockTransport 會跳過 httpx 底層的檢查，結論可能不一樣（第 7 項就是這樣撤回的）。
 - **後端的同步計算會卡住整台伺服器**：`async` 函式裡的解碼、trafilatura 抽文字都在事件迴圈上執行，`asyncio.timeout` 打斷不了。懷疑某段很慢時，另開一個每 0.1 秒跳一次的 task 量最長停頓（charset=punycode 就是這樣量出 59 秒）。
-- **用 `/verify` 在真瀏覽器操作網站**（2026-11-03 起）：`.claude/skills/verify/` 會在 8100／5174 開一份自己的網站（Claude 關閉、不花錢），用無頭 Chrome 點按鈕、打字並截圖，不碰使用者的 8000／5173。步驟、畫面元素的定位方式與 5 個功能的操作清單都在該資料夾的 `SKILL.md` 與 `features/`；證據存在系統暫存資料夾的 `pnm-verify-evidence/`。畫面改動修完後先自己跑一次，再請使用者在瀏覽器確認。`cleanup.sh` 關程式前會用 `ps` 比對指令內容（`signature()`：`uvicorn app.main:app --port 8100`、`vite.js --port 5174`、這次的 Chrome 設定檔），不符就跳過，避免 PID 被系統重用時關錯程式（Codex R3）；**改 `launch.sh` 的 port 或啟動參數時要同步改 `signature()`**，否則清理會跳過自己的程式並警告 port 仍被佔用。
+- **用 `/verify` 在真瀏覽器操作網站**（2026-11-03 起）：`.claude/skills/verify/` 會在 8100／5174 開一份自己的網站（Claude 關閉、不花錢），用無頭 Chrome 點按鈕、打字並截圖，不碰使用者的 8000／5173。步驟、畫面元素的定位方式與 5 個功能的操作清單都在該資料夾的 `SKILL.md` 與 `features/`；證據存在系統暫存資料夾的 `pnm-verify-evidence/`。畫面改動修完後先自己跑一次，再請使用者在瀏覽器確認。`cleanup.sh` 關程式前會用 `ps` 比對指令內容（`signature()`：`uvicorn app.main:app --port 8100`、`vite.js --port 5174`、這次的 Chrome 設定檔），不符就跳過，避免 PID 被系統重用時關錯程式（Codex R3）；**改 `launch.sh` 的 port 或啟動參數時要同步改 `signature()`**，否則清理會跳過自己的程式並警告 port 仍被佔用。`page.evaluate()` 每次最多等 30 秒（R6），真的要等更久的單一動作時傳第二個參數，例如 `page.evaluate(js, 120_000)`；要等畫面變化請用 `waitFor`。
 - **跑前端真程式**：`cd frontend && npx vite-node 腳本.ts` 可以直接 import `src/lib` 的函式；`fetch` 用的是相對路徑，要先把 `globalThis.fetch` 包一層補上本機伺服器網址。
 - zsh 會把 `--include=*.py` 和 `echo =====` 當成特殊語法而報錯，前者加引號，後者別用。
 
