@@ -176,6 +176,12 @@ async def test_gives_up_after_too_many_redirects():
     await fails_with("https://news.example/0", handler, "redirects too many times")
 
 
+@pytest.mark.parametrize("location", ["ftp://files.example/story.html", "mailto:news@example.com"])
+async def test_explains_a_redirect_to_an_address_we_cannot_open(location):
+    redirect = lambda req: httpx.Response(302, headers={"location": location})
+    await fails_with("https://news.example/bhp", redirect, "redirects to an address we can't open")
+
+
 async def test_reports_an_unknown_host():
     await fails_with("https://nowhere.example/", lambda req: html(), "couldn't find that site")
 

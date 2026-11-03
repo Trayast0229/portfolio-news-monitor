@@ -44,6 +44,7 @@ class ArticleError(Exception):
 
 
 NOT_A_LINK = "Enter a full web address starting with http:// or https://."
+BAD_REDIRECT = "That link redirects to an address we can't open. Paste the text instead."
 NOT_ALLOWED = "That address isn't allowed. Use a link to a public news site."
 BLOCKED = "This site needs a subscription or blocks automatic access. Copy the article text and paste it instead."
 NOT_FOUND = "We couldn't find that page. Check the link."
@@ -73,11 +74,13 @@ async def _follow(url: str, client: httpx.AsyncClient, resolve) -> Article:
         try:
             async with client.stream("GET", current, headers={"user-agent": USER_AGENT}, timeout=TIMEOUT) as res:
                 if res.is_redirect and "location" in res.headers:
-                    current = _parse(str(current.join(res.headers["location"])))
+                    current = _redirect_target(current, res.headers["location"])
                     continue
                 _check_response(res)
                 body = await _read_limited(res)
                 charset = res.charset_encoding
+        except httpx.InvalidURL as exc:  # httpx reads the Location itself, e.g. mailto: with no host
+            raise ArticleError(BAD_REDIRECT) from exc
         except httpx.TransportError as exc:
             raise ArticleError(NO_RESPONSE) from exc
         return _extract(_decode(body, charset), str(current))
@@ -92,6 +95,13 @@ def _parse(url: str) -> httpx.URL:
     if parsed.scheme not in ("http", "https") or not parsed.host:
         raise ArticleError(NOT_A_LINK)
     return parsed
+
+
+def _redirect_target(current: httpx.URL, location: str) -> httpx.URL:
+    try:
+        return _parse(str(current.join(location)))
+    except ArticleError as exc:  # the user's link was fine; the site sent us somewhere else
+        raise ArticleError(BAD_REDIRECT) from exc
 
 
 async def _check_public(url: httpx.URL, resolve) -> None:

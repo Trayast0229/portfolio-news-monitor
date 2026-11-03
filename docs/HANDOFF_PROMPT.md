@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，目前正在**系統性地找出並修正 bug**。「評分邊界」「FinBERT 比對」「Claude 引擎」「前端」「前後端連線」五區已修完；「抓文章」區剩第 10 項，第 11 項待使用者決定。專案**最後要部署上線**（作業要求），修正一律照上線標準判斷。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，目前正在**系統性地找出並修正 bug**。「評分邊界」「FinBERT 比對」「Claude 引擎」「前端」「前後端連線」五區已修完；「抓文章」區只剩第 11 項待使用者決定。專案**最後要部署上線**（作業要求），修正一律照上線標準判斷。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -6,9 +6,9 @@
 
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認前後端是否在執行。沒有的話照 HANDOFF.md 第 5 節啟動，或請使用者用 VS Code 的 Start app 任務啟動。
-2. 執行後端 pytest 和前端 npm test，確認目前全部通過，記下測試數量作為起點（上次結束時：後端 163、前端 50）。
+2. 執行後端 pytest 和前端 npm test，確認目前全部通過，記下測試數量作為起點（上次結束時：後端 165、前端 50）。
 3. 用 `git log origin/main..HEAD --oneline` 確認還沒 push 的 commit（上次結束時有 9 個）。
-4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：修第 10 項（`/pstack:tdd 修第 10 項：轉址到非網頁位址時錯誤訊息不對`），問使用者第 11 項，再跑 `/pstack:thermo-nuclear-review`，使用者同意後才 push。
+4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：問使用者第 11 項（非英文文章要不要提醒），再跑 `/pstack:thermo-nuclear-review`，使用者同意後才 push。
 
 工作流程（HANDOFF.md 第 9 節有完整說明）：
 - 每個 bug 由使用者依序觸發：`/pstack:tdd 修第 N 項：…` → 使用者看改動、在瀏覽器測 → `/pstack:blast-radius` → （可省略）`/code-review low` → 使用者說「commit」。每一步做完就停下來等，不要自己往下走。
