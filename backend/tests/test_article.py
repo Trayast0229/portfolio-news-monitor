@@ -1,5 +1,6 @@
 import asyncio
 import socket
+import time
 
 import httpx
 import pytest
@@ -81,6 +82,8 @@ async def test_cuts_long_articles_to_the_limit(monkeypatch):
 
 JAPANESE = "BHPの株価が上昇した。鉄鉱石の需要は強い。" * 3
 FRENCH = "Nestlé café – crème brûlée BHP shares rose on Friday after the miner reported a record annual profit and lifted its dividend."
+THAI = "BHP Group shares rose on Friday after the miner reported record annual profit and lifted its dividend. นักวิเคราะห์กล่าวว่าหุ้นขึ้น"
+TURKISH = "BHP Group shares rose on Friday after the miner reported record annual profit. Analistler hisselerin yükseldiğini söyledi; şirket güçlü."
 QUOTES = "The CEO called it “a great year” after BHP shares rose to a record on Friday, analysts said."
 
 
@@ -89,6 +92,8 @@ QUOTES = "The CEO called it “a great year” after BHP shares rose to a record
     [
         (JAPANESE, "shift_jis", "text/html; charset=Shift_JIS"),
         (FRENCH, "windows-1252", "text/html; charset=windows-1252"),
+        (THAI, "cp874", "text/html; charset=TIS-620"),
+        (TURKISH, "cp1254", "text/html; charset=ISO-8859-9"),
         # Browsers read pages labelled ISO-8859-1 as windows-1252, which adds curly quotes.
         (QUOTES, "windows-1252", "text/html; charset=ISO-8859-1"),
     ],
@@ -98,6 +103,23 @@ async def test_reads_pages_in_the_encoding_the_site_declares(text, encoding, con
     res = httpx.Response(200, content=page.encode(encoding), headers={"content-type": content_type})
     result = await fetch("https://news.example/bhp", lambda req: res)
     assert text.strip() in result.text
+
+
+@pytest.mark.parametrize("charset", ["undefined", "unicode_escape"])
+async def test_ignores_charsets_that_browsers_do_not_support(charset):
+    page = f"<html><head><title>H</title></head><body><article><p>{QUOTES}</p></article></body></html>"
+    res = httpx.Response(200, content=page.encode("windows-1252"), headers={"content-type": f"text/html; charset={charset}"})
+    result = await fetch("https://news.example/bhp", lambda req: res)
+    assert QUOTES in result.text
+
+
+async def test_ignores_a_punycode_charset_without_stalling():
+    # Python's punycode decoder slows down with length: a 1 MB page held the whole server for seconds.
+    res = httpx.Response(200, content=b"a" * 1_000_000 + b"\xff", headers={"content-type": "text/html; charset=punycode"})
+    start = time.perf_counter()
+    with pytest.raises(ArticleError):
+        await fetch("https://news.example/bhp", lambda req: res)
+    assert time.perf_counter() - start < 2
 
 
 async def test_trusts_the_page_over_the_header_when_they_disagree():

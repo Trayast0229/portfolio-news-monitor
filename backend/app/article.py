@@ -24,15 +24,28 @@ TIMEOUT = httpx.Timeout(10.0)  # per step, so a site that trickles data never hi
 TOTAL_SECONDS = 20  # the whole fetch, including DNS lookups and redirects
 USER_AGENT = "Mozilla/5.0 (compatible; PortfolioNewsMonitor/0.1)"
 MIN_TEXT = 50  # AnalyzeRequest.news needs at least this many characters
-# Browsers read these labels as the wider encodings real pages use (WHATWG Encoding Standard).
-BROWSER_ENCODINGS = {
+# The encodings browsers support (WHATWG Encoding Standard), keyed by Python's name for a
+# label and mapped to the codec browsers really use for it. Any other label is ignored: the
+# site picks it, and some Python codecs (punycode) take a minute on a large page.
+WEB_ENCODINGS = {
+    **{
+        name: name
+        for name in ["cp866", "koi8-r", "koi8-u", "mac-roman", "euc_jp", "iso2022_jp", "gb18030", "cp932", "cp949"]
+        + ["big5hkscs", "utf-16", "utf-16-be", "utf-16-le"]
+    },
+    **{f"iso8859-{n}": f"iso8859-{n}" for n in (2, 3, 4, 5, 6, 7, 8, 10, 13, 14, 15, 16)},
+    **{f"cp125{n}": f"cp125{n}" for n in range(9)},
     "iso8859-1": "cp1252",
+    "iso8859-9": "cp1254",
     "ascii": "cp1252",
     "shift_jis": "cp932",
     "gb2312": "gb18030",
     "gbk": "gb18030",
     "big5": "big5hkscs",
     "euc_kr": "cp949",
+    "tis-620": "cp874",  # Thai; Python doesn't know the "windows-874" label itself
+    "iso8859-11": "cp874",
+    "cp874": "cp874",
 }
 # trafilatura already honours a meta tag in the part of the page it scans for one.
 META_CHARSET = re.compile(rb"<meta[^>]+charset\s*=", re.IGNORECASE)
@@ -148,10 +161,9 @@ def _decode(body: bytes, charset: str | None) -> str | bytes:
     if META_CHARSET.search(body[:META_SCAN_BYTES]):
         return body  # the page's own label wins: old servers send ISO-8859-1 for everything
     try:
-        name = codecs.lookup(charset or "").name
-        return body.decode(BROWSER_ENCODINGS.get(name, name))
-    except (LookupError, UnicodeDecodeError):
-        return body  # no label, or a wrong one: let trafilatura guess
+        return body.decode(WEB_ENCODINGS[codecs.lookup(charset or "").name])
+    except (LookupError, KeyError, UnicodeError):
+        return body  # no label, a wrong one or one browsers don't support: let trafilatura guess
 
 
 def _extract(body: str | bytes, url: str) -> Article:
