@@ -51,7 +51,8 @@ export default function App() {
   const [fetchNote, setFetchNote] = useState<string | null>(null);
   const [engines, setEngines] = useState<EngineName[]>(loadEngines);
   const [status, setStatus] = useState<Partial<Record<EngineName, EngineStatus>>>({});
-  const [response, setResponse] = useState<AnalyzeResponse | null>(null);
+  // The result on screen and the story it's about, which may differ from the text box by now.
+  const [shown, setShown] = useState<{ news: string; response: AnalyzeResponse } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
@@ -136,7 +137,7 @@ export default function App() {
       setHistory(addHistory({ news: news.trim(), url, holdings: cleaned, response: res }));
       // The run is saved either way, but its result no longer matches the form.
       if (!isCurrent()) return;
-      setResponse(res);
+      setShown({ news: news.trim(), response: res });
       // On a single-column layout the result sits below the form.
       if (window.matchMedia("(max-width: 860px)").matches) {
         document.querySelector(".result")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -156,7 +157,7 @@ export default function App() {
     setArticleUrl(entry.url ?? "");
     setFetchError(null);
     setFetchNote(null);
-    setResponse(entry.response);
+    setShown({ news: entry.news, response: entry.response });
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -264,7 +265,7 @@ export default function App() {
           </button>
         </div>
 
-        <ResultPanel response={response} loading={loading} />
+        <ResultPanel response={shown?.response ?? null} news={shown?.news ?? ""} loading={loading} />
       </main>
 
       <HistoryList entries={history} onOpen={openHistory} onClear={() => setHistory(clearHistory())} />

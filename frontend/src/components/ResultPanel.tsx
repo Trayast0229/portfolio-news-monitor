@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ENGINE_NAMES, type AnalyzeResponse, type EngineName, type PortfolioResult } from "../lib/api";
-import { skippedNotice } from "../lib/assessment";
+import { languageNotice, skippedNotice } from "../lib/assessment";
 import { zoneFor } from "../lib/gauge";
 import { pct, signedPct } from "../lib/format";
 import { HoldingBreakdown, ProbabilityBar } from "./HoldingBreakdown";
@@ -8,10 +8,11 @@ import { SentimentGauge } from "./SentimentGauge";
 
 interface Props {
   response: AnalyzeResponse | null;
+  news: string; // the story the response is about
   loading: boolean;
 }
 
-export function ResultPanel({ response, loading }: Props) {
+export function ResultPanel({ response, news, loading }: Props) {
   const results = response?.results ?? [];
   const [selected, setSelected] = useState<EngineName | null>(null);
   useEffect(() => setSelected(results[0]?.engine ?? null), [response]);
@@ -51,13 +52,13 @@ export function ResultPanel({ response, loading }: Props) {
           </p>
         </>
       ) : (
-        <ResultBody result={result} weightsAdjusted={response!.weights_adjusted} />
+        <ResultBody result={result} news={news} weightsAdjusted={response!.weights_adjusted} />
       )}
     </section>
   );
 }
 
-function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weightsAdjusted: boolean }) {
+function ResultBody({ result, news, weightsAdjusted }: { result: PortfolioResult; news: string; weightsAdjusted: boolean }) {
   if (result.status === "error") {
     return (
       <>
@@ -68,6 +69,7 @@ function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weig
   }
 
   const skipped = skippedNotice(result);
+  const language = languageNotice(result, news);
 
   if (result.status === "unrelated") {
     return (
@@ -76,6 +78,7 @@ function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weig
         <p className="result-empty">
           {skipped ? "This story doesn't touch any of the holdings that were assessed." : "This story doesn't touch any of your holdings."}
         </p>
+        {language && <p className="notice">{language}</p>}
         {skipped && <p className="notice">{skipped}</p>}
         {result.engine === "finbert" && (
           <p className="notice">
@@ -112,6 +115,7 @@ function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weig
           Affects <strong>{pct(result.exposure)}</strong> of your portfolio ({related} of {result.holdings.length}{" "}
           holdings). Holdings the story doesn't touch are left out of the score.
         </p>
+        {language && <p className="notice">{language}</p>}
         {skipped && <p className="notice">{skipped}</p>}
         {weightsAdjusted && <p className="notice">Your weights didn't add up to 100%, so they were scaled to fit.</p>}
       </div>

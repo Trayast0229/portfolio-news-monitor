@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題。2026-11-03 修好第 1 項（localStorage 白畫面），也修好在 Safari 發現的第 12 項（指針歪掉）、第 4 項（後端晚好時名稱不重查）、第 5 項（後端出錯被說成沒開）、第 8＋6 項（沒有總時間上限）、第 2＋3 項（晚到的回應、歷史紀錄的網址）、第 9 項（非 UTF-8 網頁亂碼）與第 10 項（轉址到非網頁位址），第 7 項查證後不會發生。「前端」「前後端連線」「抓文章」三區的確認項目已修完；只剩待使用者決定的第 11 項，見第 6 節「已找到、待修」。從 `6db0e09` 之後的 commit 都**還沒 push**。建議下一步：問使用者第 11 項，再跑一次 `/pstack:thermo-nuclear-review`，使用者同意後才 push。**專案最後要部署上線**（作業要求），修正一律照上線標準判斷，部署前要做的事在第 6 節「上線前必做」。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
+**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題。2026-11-03 修好第 1 項（localStorage 白畫面），也修好在 Safari 發現的第 12 項（指針歪掉）、第 4 項（後端晚好時名稱不重查）、第 5 項（後端出錯被說成沒開）、第 8＋6 項（沒有總時間上限）、第 2＋3 項（晚到的回應、歷史紀錄的網址）、第 9 項（非 UTF-8 網頁亂碼）、第 10 項（轉址到非網頁位址）與第 11 項（非英文文章加提醒），第 7 項查證後不會發生。「前端」「前後端連線」「抓文章」三區的確認項目都已修完，第 6 節「已找到、待修」只剩前端幾個推測項目。從 `6db0e09` 之後的 commit 都**還沒 push**。建議下一步：跑一次 `/pstack:thermo-nuclear-review`，使用者同意後才 push。**專案最後要部署上線**（作業要求），修正一律照上線標準判斷，部署前要做的事在第 6 節「上線前必做」。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
 
 ## 1. 這是什麼、為什麼做
 
@@ -16,7 +16,7 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，165 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，50 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，53 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -134,7 +134,7 @@ README.md
 - **前端**（2026-11-03 起）：修正：localStorage 形狀不對時改用預設值或丟掉壞的那筆，不再白畫面（第 1 項，已在 Safari 實測）。Safari 儀表盤指針偏離圓心（第 12 項）：`transformOrigin` 用 px 時 Safari 當成螢幕像素，改成指針畫在原點、以 `0 0` 旋轉再移到圓心，Safari 與 Chrome 實測通過。清空的權重存成 `null`，讀回來是 `NaN`。引擎名稱用 `Object.hasOwn` 比對，`"toString"` 這類內建名稱不算。晚到的回應（第 2 項）：`App.tsx` 用 `edits` 計數，抓文章途中任何修改（打字、改網址、點範例或歷史）都讓那次抓取作廢；分析途中只有整則新聞被換掉（範例、歷史、抓到新文章）才不顯示結果，但仍存進歷史。歷史紀錄的網址（第 3 項）：`history.ts` 的 `storySource()`，只有網址欄與文字框都還是 Fetch 回來的原樣才存網址（使用者接受刪改內文後就不存網址）。兩項都已在瀏覽器實測。
 - **前後端連線**（2026-11-03 起）：修正：後端比前端晚好時，查不到的公司名稱每 3 秒重查（`history.ts` 的 `lookUpName()`），健康檢查失敗也每 3 秒重試，所以後端一好名稱就自己出現、「FinBERT is loading」也會顯示（第 4 項，已在瀏覽器實測）。後端預料外的錯誤改回 JSON 的 `detail`（`main.py` 的 `unexpected_error`），前端會顯示「Something went wrong on the analysis server…」；Vite 代理在後端沒開時回的是空白 500，仍顯示「isn't available right now」（第 5 項）。抓文章整個過程（含 DNS 與轉址）最多 20 秒（`article.py` 的 `TOTAL_SECONDS`；`httpx.Timeout` 是每一步各自的上限，已用本機慢速伺服器實測會被拖住）。前端每個請求 30 秒、分析 2 分鐘（使用者 2026-11-03 決定；正常約 10 秒）後放棄並顯示「took too long」（第 8＋6 項）。前端的「port 8000」提示只在開發模式出現（`import.meta.env.DEV`），正式 build 裡沒有。
 
-- **抓文章**（2026-11-03 起）：非 UTF-8 網頁亂碼（第 9 項）：trafilatura 2.3.1 不看回應標頭，只靠 charset_normalizer 猜，但它會讀網頁內的 `<meta charset>`。所以只有「編碼只寫在標頭」的頁面會猜錯（Shift_JIS 被當成韓文、`crème` 變 `crčme`）。`article.py` 的 `_decode()` 依序：內容是合法 UTF-8 就照 UTF-8 → 前 5000 bytes 有 meta 就交給 trafilatura（和以前一樣；標頭和 meta 衝突時以 meta 為準，使用者 2026-11-03 選擇，因為舊伺服器常對所有網頁送 ISO-8859-1）→ 照標頭的編碼讀（ISO-8859-1、Shift_JIS 等照瀏覽器改用較大的編碼，例如 cp1252、cp932）→ 都不行才交給 trafilatura 猜。已用腳本確認一般 UTF-8 頁面（含沒標示的 gzip 內容）抽出結果與修改前完全相同。轉址到非網頁位址（第 10 項）：轉到 `ftp://` 原本說成使用者網址打錯（`_redirect_target()` 改成 `BAD_REDIRECT`）；轉到 `mailto:`、`javascript:`、`data:` 這類沒有主機的位址時，httpx 即使不自動跟隨轉址也會先算下一個網址並丟出 `InvalidURL`，原本漏成 500，現在 `_follow()` 接住也顯示 `BAD_REDIRECT`。使用者自己的網址進 `stream()` 前已解析好，不會觸發這個錯誤（已用奇怪網址與真實連線驗證）。
+- **抓文章**（2026-11-03 起）：非 UTF-8 網頁亂碼（第 9 項）：trafilatura 2.3.1 不看回應標頭，只靠 charset_normalizer 猜，但它會讀網頁內的 `<meta charset>`。所以只有「編碼只寫在標頭」的頁面會猜錯（Shift_JIS 被當成韓文、`crème` 變 `crčme`）。`article.py` 的 `_decode()` 依序：內容是合法 UTF-8 就照 UTF-8 → 前 5000 bytes 有 meta 就交給 trafilatura（和以前一樣；標頭和 meta 衝突時以 meta 為準，使用者 2026-11-03 選擇，因為舊伺服器常對所有網頁送 ISO-8859-1）→ 照標頭的編碼讀（ISO-8859-1、Shift_JIS 等照瀏覽器改用較大的編碼，例如 cp1252、cp932）→ 都不行才交給 trafilatura 猜。已用腳本確認一般 UTF-8 頁面（含沒標示的 gzip 內容）抽出結果與修改前完全相同。轉址到非網頁位址（第 10 項）：轉到 `ftp://` 原本說成使用者網址打錯（`_redirect_target()` 改成 `BAD_REDIRECT`）；轉到 `mailto:`、`javascript:`、`data:` 這類沒有主機的位址時，httpx 即使不自動跟隨轉址也會先算下一個網址並丟出 `InvalidURL`，原本漏成 500，現在 `_follow()` 接住也顯示 `BAD_REDIRECT`。使用者自己的網址進 `stream()` 前已解析好，不會觸發這個錯誤（已用奇怪網址與真實連線驗證）。非英文文章（第 11 項，使用者 2026-11-03 選擇只提醒、不擋）：用真實 FinBERT 重現，中文新聞寫「必和必拓」判為無關，夾英文「BHP」的大好消息只給 55 中立。`assessment.ts` 的 `languageNotice()`：FinBERT 的結果、文章字母超過 3 成不是英文字母時（數字母不數字，所以夾幾個英文代號的中文仍會提醒、引用中文名的英文不會），在「有分數」與「Not related」畫面最上方顯示「FinBERT reads English only, so it may have missed this story.」，Claude 不顯示。`App.tsx` 的 `shown` 把結果和當時分析的文字綁在一起，分析後再改文字框不影響提醒，歷史紀錄用該筆的文字。已在瀏覽器實測。
 
 **已知但不修**
 - 人名會被當成公司（「Sarah Goodman」→ Goodman Group）、沒寫 FC 的球隊名（「Santos beat Corinthians」）。
@@ -145,24 +145,21 @@ README.md
 - 第 3 項修好前存的歷史紀錄可能帶著沒抓過的網址；點開這種舊紀錄再分析，新紀錄會沿用那個網址。最多 20 筆，會被新紀錄擠掉。
 - 第 4 項的重試沒有次數上限、也不能取消（`/code-review low` 指出，影響小）：後端沒開時打代號，每個打到一半、查詢失敗的字（B、BH、BHP）都會各自每 3 秒重試，直到後端好；超過 40 字的代號（只有手動改壞 localStorage 才會有）會一直收到 422 而永遠重試；開發模式的 StrictMode 下健康檢查可能同時輪詢兩份。後端一好就停，持股編輯器也不會被卸載。
 - 轉址的 `Location` port 不是數字（`http://a.example:x/`）時，httpx 先擋下並轉成 `RemoteProtocolError`，畫面顯示「The site didn't respond」，不精確但不算錯。
+- 法文、德文這類也用英文字母的非英文文章偵測不到，不會出現第 11 項的提醒。FinBERT 判為無關時每檔持股仍寫「Not mentioned in the article.」，和提醒的「可能漏看」語氣有點衝突，提醒排在前面所以先不改。
 
-**已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單，第 11 項先問使用者）
+**已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單）
 
 前端
 - 推測沒問題、補測試確認即可：快速連按 Analyze／Fetch（按鈕會停用，`fetchStory` 也有擋）；歷史滿 20 筆（`mergeHistory` 有 `slice`）。
 - `crypto.randomUUID()`（`storage.ts` 的 `addHistory`）只在 https 或 localhost 可用；用區網 IP 或 http 部署時，分析成功卻會顯示錯誤（推測，目前開發伺服器不對區網開放）。
 - 結果區的引擎切換宣告為 `role="tablist"`，但不能用方向鍵切換（`ResultPanel.tsx`），要用 VoiceOver 實測。
 
-前後端連線
-
-抓文章（`backend/app/article.py`）
-11. **非英文文章**（產品取捨，待使用者決定）。FinBERT 只懂英文，中文文章大概會判為無關；要不要偵測到非英文時提醒，先問使用者。
 
 已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。原列第 7 項「`Content-Length` 不是數字就回 500」在真實連線不會發生：httpx 0.28.1 底層的 h11 會先拒絕非數字的值（變成 `RemoteProtocolError`，已顯示成網站沒回應），重複的相同值（`38, 38`）會合併成一個數字；只有測試用的 `MockTransport` 會跳過這層檢查（2026-11-03 用本機 socket 伺服器實測）。
 
 **上線前必做**（2026-11-03 與使用者討論。部署是作業要求；不是 bug，部署時再做）
 - **上線版不開 Claude**（使用者決定，避免訪客用掉 API 費用）：伺服器上不設定 `ANTHROPIC_API_KEY`，Claude 狀態就是 `unavailable`，完全不會呼叫。Claude 比較留在本機與 GitHub（README 截圖）展示。程式碼不刪。
-- 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。
+- 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
 - 前後端分開部署時：前端目前靠 Vite 代理 `/api`，上線要設定後端網址（例如環境變數）與 CORS。
 - 速率限制：`/api/article` 會替訪客抓網頁、`/api/analyze` 會跑 FinBERT，都要限制次數。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。

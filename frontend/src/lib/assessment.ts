@@ -21,3 +21,17 @@ export function skippedNotice(result: PortfolioResult): string | null {
     `part of this score. Try again to include ${one ? "it" : "them"}.`
   );
 }
+
+// FinBERT was trained on English. Counting letters rather than words keeps a Chinese
+// story with a few English tickers flagged, and an English story quoting a name not.
+function mostlyNotEnglish(text: string): boolean {
+  const letters = text.match(/\p{L}/gu) ?? [];
+  const english = letters.filter((c) => /[a-z]/i.test(c)).length;
+  return letters.length > 0 && english / letters.length < 0.7;
+}
+
+export function languageNotice(result: PortfolioResult, news: string): string | null {
+  return result.engine === "finbert" && mostlyNotEnglish(news)
+    ? "FinBERT reads English only, so it may have missed this story."
+    : null;
+}
