@@ -15,7 +15,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，185 個 pytest 全部通過 |
+| 後端（FastAPI）| 完成，188 個 pytest 全部通過 |
 | 前端（Vite + React + TS）| 完成，57 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
@@ -128,7 +128,8 @@ README.md
 **已完成**（細節見 `git log`，規則已寫進第 4 節）
 - **評分邊界**：前後端分區一致；權重總和 99.5／100.5 視為 100；30 檔上限正常。修正：編輯器總和不算沒填代號的列、前端擋下權重 >100、.5 一律進位。總和剛好 99.5／100.5 時的浮點誤差（Codex C6，2026-11-03）：Python 的 `sum()` 有誤差補償、JavaScript 逐一相加，兩邊錯在不同組合（`0.35, 19.58, 79.57` 後端算成 99.4999…、`30.6, 34.45, 34.45` 前端算成 99.5000…1），編輯器和結果的縮放提示會互相矛盾。後端 `normalize_weights()` 與前端 `weightTotal()` 都先取到小數 9 位再比較；已用 55,140 組隨機權重確認前後端答案全部一致、權重本身不變。
 - **FinBERT 比對**：修正：直撇號與彎撇號、新聞縮寫 ticker（AFL、NRL、SPP 等 20 個）、James Hardie 與 a2 Milk 別名、地名與賽事排除、`Ltd.`／`U.S.` 不斷句、同一句多家公司按轉折詞切開、長句只取提及處前後、切不開時在原因加提醒。`GPT` 列為縮寫代號（Codex C4，2026-11-03）：AI 新聞的「GPT-5」原本被當成 GPT Group 的消息，真 FinBERT 給 92.5% 看好；現在要寫「GPT Group」、「ASX: GPT」或「GPT.AX」才算。已用腳本比對全部 2,051 家公司各 9 種寫法，只有 GPT 單獨出現的 4 句結果改變。
-- **Claude 引擎**：修正：`BHP.AX`／`ASX: BHP` 比對、回答沒有任何持股時重試再報錯、逾時訊息、API 錯誤說明、重試次數 2 → 1、漏掉的持股顯示「Not assessed」。
+- **Claude 引擎**：修正：`BHP.AX`／`ASX: BHP` 比對、回答沒有任何持股時重試再報錯、逾時訊息、API 錯誤說明、重試次數 2 → 1、漏掉的持股顯示「Not assessed」。格式錯誤也重試（Codex C10，2026-11-03 收自外部 PR #1，作者 RyanT0306）：anthropic SDK 在 `messages.parse()` 裡就驗證 JSON，截斷或形狀不對時丟出 pydantic `ValidationError`，不會回 `parsed_output=None`；`_call()` 接住後重試一次，再失敗顯示「didn't match the expected format」。純文字的拒絕一樣走這條路，所以仍顯示格式錯誤，不是「Claude declined…」。
+- **FinBERT 沒安裝**（2026-11-03 收自外部 PR #1）：沒裝 transformers／torch 時，沒提到任何持股的新聞不會載入模型，結果顯示「Not related」，好像 FinBERT 讀過一樣。`_analyze_sync()` 先檢查 `status()`，沒安裝就丟 EngineError。訊息改成給訪客看的「FinBERT isn't installed on the analysis server…」，不叫訪客跑 `pip install`（安裝步驟在 README）。`App.tsx` 的 FinBERT 提示仍寫 `pip install`，留給「上線前必做」一起改。
 - **公開 repo**（Codex R1，2026-11-03）：還沒 push 的 `docs/HANDOFF_PROMPT.md` 曾寫入對使用者的個人描述。使用者選擇改寫還沒 push 的 23 個 commit（`git filter-branch --tree-filter`，先建 `backup-before-r1` 分支），15 個 commit 只差那一行、訊息與作者不變，其他 8 個 hash 不變；改寫後沒有任何 commit 含那句話，測試全部通過。push 成功後可刪掉 `backup-before-r1`。
 - **`/verify` 工具**（Codex R6，2026-11-03）：`cdp.mjs` 等 Chrome 回應沒有上限，分頁卡住或當掉時 `waitFor()` 永遠等（用真 Chrome 的無限迴圈與 `Page.crash` 重現，給 2 秒、10 秒後仍在等）。`send()` 每個請求最多等 30 秒（第三個參數可改），`waitFor()` 把剩下的時間傳下去，連線關閉時還在等的請求馬上報錯。修好後兩種情況都在 2.0 秒停止；等 35 秒的 `waitFor` 與正常的 FinBERT 分析流程結果和舊版相同，關閉後程式照常馬上結束。
 - **前端**（2026-11-03 起）：修正：localStorage 形狀不對時改用預設值或丟掉壞的那筆，不再白畫面（第 1 項，已在 Safari 實測）。Safari 儀表盤指針偏離圓心（第 12 項）：`transformOrigin` 用 px 時 Safari 當成螢幕像素，改成指針畫在原點、以 `0 0` 旋轉再移到圓心，Safari 與 Chrome 實測通過。清空的權重存成 `null`，讀回來是 `NaN`。引擎名稱用 `Object.hasOwn` 比對，`"toString"` 這類內建名稱不算。晚到的回應（第 2 項）：`App.tsx` 用 `edits` 計數，抓文章途中任何修改（打字、改網址、點範例或歷史）都讓那次抓取作廢；分析途中只有整則新聞被換掉（範例、歷史、抓到新文章）才不顯示結果，但仍存進歷史。歷史紀錄的網址（第 3 項）：`history.ts` 的 `storySource()`，只有網址欄與文字框都還是 Fetch 回來的原樣才存網址（使用者接受刪改內文後就不存網址）。兩項都已在瀏覽器實測。歷史紀錄只差持股順序（Codex C8，使用者 2026-11-03 決定算同一個分析）：`history.ts` 的 `runKey()` 先把持股照代號排序（複製一份，存下的紀錄仍是原本順序，點開時照原順序填回）。已用 20,000 組隨機歷史比對新舊版：只有「持股相同、只差順序」的舊紀錄被取代，沒有改動任何紀錄。
@@ -157,7 +158,6 @@ README.md
 
 **Codex 檢查找到、待修**（2026-11-03 由 Codex 多代理檢查找出，Claude 用真實程式全部重跑確認。嚴重度與順序由使用者同意。依建議順序列出）
 - **C5【低】數字很多的長句，FinBERT 看不到公司名稱**：`finbert_engine.py` 的 `_focus()` 用空白分詞數字數，模型上限是 512 個 WordPiece token。104 個字、90 個金額連成一句時有 1,098 個 token，`BHP` 被截掉，真 FinBERT 給 91% 中立（單獨那句是 94% 看好）。真實新聞很少這樣寫。
-- **C10【低】Claude 的格式錯誤或拒絕沒有重試**：anthropic SDK 在 `messages.parse()` 裡就先驗證 JSON，截斷的 JSON、形狀不對或純文字的拒絕都丟出 pydantic `ValidationError`，`claude_engine.py` 的重試與「Claude declined…」訊息都沒用上，只顯示通用錯誤。上線版不開 Claude。
 - 推測、未驗證：結構很複雜的網頁可能讓 trafilatura 抽文字時卡住事件迴圈約 7 秒（Codex 初步量到，沒有交叉驗證）。
 
 **已找到、待修**（2026-10-29 讀程式碼找出，還沒動手。「已確認」＝讀程式碼確定會發生或已實測；「推測」＝要先重現。編號沿用給使用者的清單）

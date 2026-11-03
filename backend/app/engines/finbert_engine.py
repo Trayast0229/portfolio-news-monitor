@@ -17,7 +17,7 @@ from ..models import EngineResult, HoldingSentiment, ResolvedHolding
 from .base import EngineError, EngineStatus
 
 MODEL_ID = "ProsusAI/finbert"
-_NOT_INSTALLED = "FinBERT isn't installed. In backend, run: uv pip install -e '.[finbert]'"
+_NOT_INSTALLED = "FinBERT isn't installed on the analysis server, so it can't read stories right now."  # setup steps are in the README
 _MAX_QUOTED = 2
 _MAX_QUOTE_CHARS = 220
 # FinBERT reads at most 512 tokens. 200 words leaves room for numbers and rare
