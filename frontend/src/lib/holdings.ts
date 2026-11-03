@@ -20,5 +20,6 @@ export function holdingsProblem(holdings: HoldingInput[]): string | null {
 }
 
 export function weightTotal(holdings: HoldingInput[]): number {
-  return filledHoldings(holdings).reduce((sum, h) => sum + (Number.isFinite(h.weight) ? h.weight : 0), 0);
+  const total = filledHoldings(holdings).reduce((sum, h) => sum + (Number.isFinite(h.weight) ? h.weight : 0), 0);
+  return Math.round(total * 1e9) / 1e9; // float noise can push 99.5 to 99.50000000000001, like the server's round(total, 9)
 }

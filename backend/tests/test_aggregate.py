@@ -29,6 +29,12 @@ class TestNormalizeWeights:
         _, adjusted = normalize_weights([HoldingIn(ticker=t, weight=33.33) for t in ("A", "B", "C")])
         assert adjusted is False
 
+    @pytest.mark.parametrize("weights", [[0.35, 19.58, 79.57], [0.01, 8.56, 91.93]])
+    def test_totals_of_exactly_99_5_or_100_5_are_not_flagged(self, weights):
+        # Summed as floats these come to 99.49999999999999 and 100.50000000000001.
+        _, adjusted = normalize_weights([HoldingIn(ticker=t, weight=w) for t, w in zip("ABC", weights)])
+        assert adjusted is False
+
 
 class TestScore:
     @pytest.mark.parametrize(

@@ -18,7 +18,7 @@ _WEIGHT_TOLERANCE = 0.5  # percentage points of drift we treat as "sums to 100"
 def normalize_weights(holdings: list[HoldingIn]) -> tuple[list[float], bool]:
     """Return weights as fractions of 1, and whether they had to be rescaled."""
     total = sum(h.weight for h in holdings)
-    adjusted = abs(total - 100) > _WEIGHT_TOLERANCE
+    adjusted = abs(round(total, 9) - 100) > _WEIGHT_TOLERANCE  # float noise can push 99.5 to 99.4999...
     return [h.weight / total for h in holdings], adjusted
 
 

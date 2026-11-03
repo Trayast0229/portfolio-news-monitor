@@ -53,4 +53,14 @@ describe("weightTotal", () => {
   it("treats empty weights as 0", () => {
     expect(weightTotal([{ ticker: "BHP", weight: 60 }, { ticker: "CBA", weight: NaN }])).toBe(60);
   });
+
+  it("ignores float noise, so a total of exactly 99.5 isn't scaled", () => {
+    // Added one by one these come to 99.50000000000001.
+    const holdings = [
+      { ticker: "BHP", weight: 30.6 },
+      { ticker: "CBA", weight: 34.45 },
+      { ticker: "CSL", weight: 34.45 },
+    ];
+    expect(weightTotal(holdings)).toBe(99.5);
+  });
 });
