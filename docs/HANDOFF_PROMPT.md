@@ -1,16 +1,17 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，目前正在**系統性地找出並修正 bug**。「評分邊界」「FinBERT 比對」「Claude 引擎」「前端」「前後端連線」「抓文章」六區的確認項目都已修完，正準備整批檢查後上傳。專案**最後要部署上線**（作業要求），修正一律照上線標準判斷。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub。**系統性除錯已全部完成**（六區修完、跑過兩次 thermo-nuclear review），本機有 15 個 commit 等使用者同意後 push。**下一階段是部署上線**（作業要求），一律照上線標準判斷。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
-請先完整讀過 docs/HANDOFF.md（特別是開頭的「接手前先看」、第 4 節評分邏輯、第 5 節環境、第 6 節除錯進度與「上線前必做」、第 9 節工作習慣與 pstack 流程）與 docs/WORKFLOW.md。需要設計細節時再讀 docs/superpowers/specs/2026-10-21-portfolio-news-monitor-design.md。要了解某個修正的來龍去脈，用 `git log` 看 commit 訊息。
+請先完整讀過 docs/HANDOFF.md（特別是開頭的「接手前先看」、第 4 節評分邏輯、第 5 節環境、第 6 節「上線前必做」與「已知但不修」、第 7 節除錯技巧、第 9 節工作習慣與 pstack 流程）與 docs/WORKFLOW.md。需要設計細節時再讀 docs/superpowers/specs/2026-10-21-portfolio-news-monitor-design.md。要了解某個修正的來龍去脈，用 `git log` 看 commit 訊息。
 
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認前後端是否在執行。沒有的話照 HANDOFF.md 第 5 節啟動，或請使用者用 VS Code 的 Start app 任務啟動。
 2. 執行後端 pytest 和前端 npm test，確認目前全部通過，記下測試數量作為起點（上次結束時：後端 170、前端 55）。
-3. 用 `git log origin/main..HEAD --oneline` 確認還沒 push 的 commit（上次結束時有 14 個）。
-4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：除錯與 thermo-nuclear review 都已完成，使用者同意後 push；之後可以開始 HANDOFF.md 第 6 節的「上線前必做」。
+3. 用 `git log origin/main..HEAD --oneline` 確認還沒 push 的 commit（上次結束時有 15 個）。
+4. 用繁體中文向使用者簡短回報狀態，然後建議下一步：如果還有沒 push 的 commit，先問使用者要不要 push（上傳前再檢查一次沒有金鑰與個人資訊）；接著從 HANDOFF.md 第 6 節「上線前必做」挑第一項，說明要做什麼、給建議的順序，等使用者決定。
 
 工作流程（HANDOFF.md 第 9 節有完整說明）：
+- 「上線前必做」是功能工作：照 docs/WORKFLOW.md 第 2 節的循環，較大的改動先給計畫、使用者說「可以開始」再動手，先寫測試再實作。要選主機、服務這類需要查最新資訊的事，先查證再給建議。
 - 每個 bug 由使用者依序觸發：`/pstack:tdd 修第 N 項：…` → 使用者看改動、在瀏覽器測 → `/pstack:blast-radius` → （可省略）`/code-review low` → 使用者說「commit」。每一步做完就停下來等，不要自己往下走。
 - 一整區修完、上傳前跑一次 `/pstack:thermo-nuclear-review`。
 - 使用者希望省 token：不自己開子代理，不用 arena、interrogate、thermos 等多模型指令，回覆簡短。

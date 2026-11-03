@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：2026-10-24 到 2026-10-27 做完了系統性除錯的三區（評分邊界、FinBERT 比對、Claude 引擎），修了 17 個問題，全部已 push。剩下的「抓文章」「前端」「前後端連線」三區已在 2026-10-29 讀過程式碼，找出 11 個問題。2026-11-03 修好第 1 項（localStorage 白畫面），也修好在 Safari 發現的第 12 項（指針歪掉）、第 4 項（後端晚好時名稱不重查）、第 5 項（後端出錯被說成沒開）、第 8＋6 項（沒有總時間上限）、第 2＋3 項（晚到的回應、歷史紀錄的網址）、第 9 項（非 UTF-8 網頁亂碼）、第 10 項（轉址到非網頁位址）與第 11 項（非英文文章加提醒），第 7 項查證後不會發生。「前端」「前後端連線」「抓文章」三區的確認項目都已修完，第 6 節「已找到、待修」只剩前端幾個推測項目。從 `6db0e09` 之後的 commit 都**還沒 push**。2026-11-03 跑了兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 問題與前端「讀回應內容沒有逾時」，第二次沒有中高風險項目。建議下一步：使用者同意後 push，之後可以開始「上線前必做」。**專案最後要部署上線**（作業要求），修正一律照上線標準判斷，部署前要做的事在第 6 節「上線前必做」。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
+**接手前先看**：系統性除錯已全部完成。2026-10-24 到 2026-10-27 修完「評分邊界」「FinBERT 比對」「Claude 引擎」三區（17 個問題，已 push）；2026-11-03 修完「前端」「前後端連線」「抓文章」三區（第 1–6、8–12 項，第 7 項查證後不會發生），再跑兩次 `/pstack:thermo-nuclear-review`，修好它找到的 charset 會卡住伺服器、`charset=undefined` 變 500、前端讀回應內容沒有逾時，第二次沒有中高風險項目。從 `6db0e09` 之後的 15 個 commit **還沒 push**，使用者說「push」才上傳。第 6 節「已找到、待修」只剩前端幾個推測項目，不急。**下一階段是部署上線**（作業要求）：照第 6 節「上線前必做」逐項做，這些是功能工作不是 bug，較大的改動先給計畫、使用者同意再動手。之前的對話都**沒有瀏覽器工具**，有幾個畫面改動只靠測試與 build 驗證，清單在第 6 節「待瀏覽器確認」。
 
 ## 1. 這是什麼、為什麼做
 
@@ -112,14 +112,14 @@ README.md
   `cd backend && .venv/bin/uvicorn app.main:app --port 8000`
 - 前端可以用 `preview_start` 啟動，設定名稱是 `frontend`，設定檔在專案上一層資料夾的 `.claude/launch.json`，注意不在專案資料夾裡。其中的 `backend` 設定在這台電腦上會失敗。
 - 前端開發伺服器把 `/api` 代理到 `:8000`。後端沒開時，代理會回 500，前端會顯示「Make sure the backend is running on port 8000」。
-- 上一段對話結束時，前後端**都沒有在執行**。接手時先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認，沒有就照上面的方式啟動。使用者自己則是用 VS Code 的 **Start app** 任務啟動（見 `docs/WORKFLOW.md`）。
+- 上一段對話結束時，前後端**還在執行**（使用者可能已經關掉）。接手時先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認，沒有就照上面的方式啟動。使用者自己則是用 VS Code 的 **Start app** 任務啟動（見 `docs/WORKFLOW.md`）。
 - **API key** 在 `backend/.env`。**絕對不要印出或複述 key 的內容**；要檢查格式時只看長度與前綴（`sk-ant-`）。
 - 沒有安裝 Docker，所以原計畫中的 docker-compose 刻意沒做（不附沒驗證過的設定）。
 - 已用 Homebrew 安裝 `gh` 並登入 Trayast0229，git 透過它以 https 推送。這個 repo 的 `user.email` 設為 GitHub 隱私信箱 `344183369+Trayast0229@users.noreply.github.com`，不要改回個人信箱。commit 後用 `git push` 上傳。
 
 ## 6. 系統性除錯進度與下一步
 
-每個 bug 先重現、寫出會失敗的測試，再修，每個單獨 commit。進度如下（2026-10-27）：
+每個 bug 先重現、寫出會失敗的測試，再修，每個單獨 commit。進度如下（2026-11-03）：
 
 **待瀏覽器確認**（上一段對話沒有瀏覽器工具，以下只用測試與 build 驗證過）
 - 持股編輯器：清空某列代號但保留權重時，「Total」應該跟著變少並提示會縮放。
@@ -187,6 +187,9 @@ README.md
 - **用真實 FinBERT 驗證**：模型已在本機快取，`cd backend && HF_HUB_OFFLINE=1 PYTHONPATH=. .venv/bin/python ...`，載入約幾秒。修 FinBERT 的 bug 時，測試用假分類器，修完再用真模型確認一次。
 - **用真實 Claude 驗證錯誤訊息**：模型名稱打錯（404）與錯誤 key（401）不會產生費用。腳本裡用 `load_dotenv(".env")` 明確指定路徑；`load_dotenv()` 會從腳本所在資料夾找，放在專案外會讀不到 key。
 - `backend/data/asx_companies.csv` 是 **CRLF 換行**（Python csv 模組預設），用 `sed` 比對整行會失敗，要用 Python 讀寫 bytes。改別名時 `scripts/build_asx_list.py` 的 `ALIASES` 與 CSV 兩邊都要改。
+- **用真實連線測抓文章**：在腳本裡用 `http.server` 開本機伺服器，回想測的標頭與內容（編碼、轉址、送一半就停），並把 `article._check_public` 暫時換成什麼都不做的函式，因為本機位址會被擋。MockTransport 會跳過 httpx 底層的檢查，結論可能不一樣（第 7 項就是這樣撤回的）。
+- **後端的同步計算會卡住整台伺服器**：`async` 函式裡的解碼、trafilatura 抽文字都在事件迴圈上執行，`asyncio.timeout` 打斷不了。懷疑某段很慢時，另開一個每 0.1 秒跳一次的 task 量最長停頓（charset=punycode 就是這樣量出 59 秒）。
+- **跑前端真程式**：`cd frontend && npx vite-node 腳本.ts` 可以直接 import `src/lib` 的函式；`fetch` 用的是相對路徑，要先把 `globalThis.fetch` 包一層補上本機伺服器網址。
 - zsh 會把 `--include=*.py` 和 `echo =====` 當成特殊語法而報錯，前者加引號，後者別用。
 
 ## 8. 參考來源
