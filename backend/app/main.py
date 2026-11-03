@@ -58,8 +58,7 @@ app = FastAPI(title="Portfolio News Monitor", lifespan=lifespan)
 # from the dev proxy's "backend is off" reply. The traceback is still logged.
 @app.exception_handler(Exception)
 async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    detail = "Something went wrong on the analysis server. Try again, and if it keeps happening, check the backend terminal."
-    return JSONResponse(status_code=500, content={"detail": detail})
+    return JSONResponse(status_code=500, content={"detail": "Something went wrong on our side. Try again in a moment."})
 
 
 @app.get("/api/health")

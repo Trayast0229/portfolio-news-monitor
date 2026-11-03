@@ -144,7 +144,7 @@ def test_unexpected_errors_say_the_server_failed_not_that_it_is_off(monkeypatch)
     monkeypatch.setattr(main, "fetch_article", broken_fetch)
     res = TestClient(app, raise_server_exceptions=False).post("/api/article", json={"url": "https://news.example/bhp"})
     assert res.status_code == 500
-    assert "Something went wrong on the analysis server" in res.json()["detail"]
+    assert res.json() == {"detail": "Something went wrong on our side. Try again in a moment."}
 
 
 @pytest.mark.parametrize("url", ["", "https://news.example/" + "a" * 2000])

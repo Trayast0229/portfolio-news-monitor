@@ -1,3 +1,4 @@
+import asyncio
 import socket
 
 import httpx
@@ -175,6 +176,20 @@ async def test_rejects_pages_that_are_not_html():
 async def test_rejects_pages_that_are_too_big(monkeypatch):
     monkeypatch.setattr(article, "MAX_BYTES", 200)
     await fails_with("https://news.example/bhp", lambda req: html(), "isn't a news page")
+
+
+async def test_gives_up_on_a_site_that_sends_a_little_at_a_time(monkeypatch):
+    monkeypatch.setattr(article, "TOTAL_SECONDS", 0.2)
+
+    async def trickle():
+        while True:
+            yield b"<p>"
+            await asyncio.sleep(0.05)
+
+    slow = lambda req: httpx.Response(200, headers={"content-type": "text/html"}, content=trickle())
+    with pytest.raises(ArticleError) as exc:
+        await asyncio.wait_for(fetch("https://news.example/bhp", slow), 2)
+    assert "took too long" in str(exc.value)
 
 
 async def test_explains_pages_without_article_text():
