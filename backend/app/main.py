@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .aggregate import aggregate, normalize_weights
@@ -59,6 +61,13 @@ app = FastAPI(title="Portfolio News Monitor", lifespan=lifespan)
 @app.exception_handler(Exception)
 async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=500, content={"detail": "Something went wrong on our side. Try again in a moment."})
+
+
+# FastAPI's own handler echoes each rejected value back, and JSON can't write 1e309 or NaN.
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = [{key: value for key, value in error.items() if key != "input"} for error in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
 @app.get("/api/health")

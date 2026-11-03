@@ -112,6 +112,16 @@ def test_invalid_requests_are_rejected(client, overrides):
     assert client.post("/api/analyze", json=body(**overrides)).status_code == 422
 
 
+@pytest.mark.parametrize("weight", ["1e309", "-1e309", "NaN"])
+def test_weights_that_are_not_finite_numbers_are_rejected(client, weight):
+    raw = f'{{"holdings": [{{"ticker": "BHP", "weight": {weight}}}], "news": "{NEWS}", "engines": ["finbert"]}}'
+    res = TestClient(app, raise_server_exceptions=False).post(
+        "/api/analyze", content=raw, headers={"content-type": "application/json"}
+    )
+    assert res.status_code == 422, res.text
+    assert res.json()["detail"][0]["loc"] == ["body", "holdings", 0, "weight"]
+
+
 def test_article_returns_the_fetched_text(client, monkeypatch):
     async def fake_fetch(url):
         return Article(url=url, title="BHP cuts guidance", text="BHP cuts guidance\n\n" + NEWS, truncated=False)
