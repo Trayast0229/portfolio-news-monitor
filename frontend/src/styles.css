@@ -12,6 +12,7 @@
   --accent: #ffe135;
   --accent-hover: #f5d400;
   --on-accent: #141413;
+  --hero-bolt-opacity: 0.35;
 
   --mint: #2f7d57;
   --mint-soft: #9cc8ad;
@@ -40,6 +41,7 @@
     --field: #242421;
     --focus: #7fa6ff;
     --accent-hover: #ffe95c;
+    --hero-bolt-opacity: 0.16;
     --mint: #4fae80;
     --mint-soft: #2e6b4e;
     --silver: #57544d;
@@ -202,6 +204,31 @@ code {
   align-self: center;
   text-align: center;
   padding: 1rem 0.5rem;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Large faint bolt behind the headline. */
+.hero-bolt {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: min(14rem, 80%);
+  height: auto;
+  transform: translate(-50%, -54%);
+  color: var(--accent);
+  opacity: var(--hero-bolt-opacity);
+}
+
+/* "Efficiency" gets its own line and a thick yellow underline. */
+.headline .underline {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 0.1em;
+  text-decoration: underline 0.18em var(--accent);
+  text-underline-offset: 0.12em;
+  text-decoration-skip-ink: none;
 }
 
 .headline {
@@ -498,6 +525,10 @@ textarea {
 }
 
 .primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
   border: 0;
   background: var(--accent);
   color: var(--on-accent);
@@ -506,6 +537,29 @@ textarea {
   border-radius: 8px;
   padding: 0.75rem 1rem;
   cursor: pointer;
+}
+
+.button-bolt {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.title-with-bolt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-bolt {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.title-bolt path {
+  fill: var(--accent);
+  stroke: var(--on-accent);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
 }
 
 .primary:hover:not(:disabled) {
@@ -936,8 +990,15 @@ textarea {
     padding: 0;
   }
 
-  .hero .muted {
+  .hero .muted,
+  .headline .underline {
     margin-left: 0;
+  }
+
+  .hero-bolt {
+    left: 0;
+    width: 10rem;
+    transform: translate(4rem, -54%);
   }
 
   .result {

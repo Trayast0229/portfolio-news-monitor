@@ -176,7 +176,10 @@ export default function App() {
         </section>
 
         <div className="hero">
-          <p className="headline">Efficiency drives progress.</p>
+          <Bolt className="hero-bolt" />
+          <p className="headline">
+            <span className="underline">Efficiency</span> drives progress.
+          </p>
           <p className="muted">Paste a news story and see whether it's good or bad for your ASX portfolio.</p>
         </div>
 

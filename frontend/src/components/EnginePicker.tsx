@@ -1,4 +1,5 @@
 import { ENGINE_NAMES, type EngineName, type EngineStatus } from "../lib/api";
+import { Bolt } from "./Bolt";
 
 const ENGINE_HINTS: Record<EngineName, string> = {
   claude: "Reads the story like an analyst, including indirect effects.",
@@ -45,6 +46,7 @@ export function EnginePicker({ engines, status, onToggle, error, loading, onAnal
         </p>
       )}
       <button type="button" className="primary" onClick={onAnalyze} disabled={loading}>
+        <Bolt className="button-bolt" />
         {loading ? "Analyzing…" : "Analyze"}
       </button>
     </section>

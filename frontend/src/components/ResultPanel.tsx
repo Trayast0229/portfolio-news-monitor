@@ -3,6 +3,7 @@ import { ENGINE_NAMES, type AnalyzeResponse, type EngineName, type PortfolioResu
 import { languageNotice, skippedNotice } from "../lib/assessment";
 import { zoneFor } from "../lib/gauge";
 import { pct, signedPct } from "../lib/format";
+import { Bolt } from "./Bolt";
 import { HoldingBreakdown, ProbabilityBar } from "./HoldingBreakdown";
 import { SentimentGauge } from "./SentimentGauge";
 
@@ -25,7 +26,10 @@ export function ResultPanel({ response, news, loading }: Props) {
     <>
       <section className="card result" aria-live="polite" aria-busy={loading}>
         <div className="result-head">
-          <h2>Portfolio sentiment</h2>
+          <h2 className="title-with-bolt">
+            Portfolio sentiment
+            <Bolt className="title-bolt" />
+          </h2>
           {results.length > 1 && (
             <div className="engine-switch" role="tablist" aria-label="Engine">
               {results.map((r) => (
