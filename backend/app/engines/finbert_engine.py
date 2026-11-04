@@ -85,7 +85,10 @@ class FinbertEngine:
 
     def __init__(self, classifier: Classifier | None = None):
         self._classifier = classifier
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()  # loading the model
+        # Two threads in the transformers pipeline at once crash the process (a segfault on
+        # PyTorch, seen with two visitors analyzing together), so analyses take turns.
+        self._run_lock = threading.Lock()
 
     def status(self) -> EngineStatus:
         if self._classifier is not None:
@@ -119,7 +122,9 @@ class FinbertEngine:
 
         scores: dict[str, dict[str, float]] = {}
         if to_score:
-            raw = self._load()(to_score)
+            classify = self._load()
+            with self._run_lock:
+                raw = classify(to_score)
             scores = {s: {d["label"].lower(): float(d["score"]) for d in row} for s, row in zip(to_score, raw)}
 
         per_holding = []

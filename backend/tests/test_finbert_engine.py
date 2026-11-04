@@ -1,4 +1,7 @@
+import asyncio
 import importlib.util
+import threading
+import time
 
 import pytest
 
@@ -195,3 +198,26 @@ async def test_missing_finbert_is_an_error_even_when_no_company_is_named(monkeyp
     assert engine.status() == "unavailable"
     with pytest.raises(EngineError, match="isn't installed"):
         await engine.analyze("Iron ore prices fell sharply overnight on weaker Chinese demand.", holdings("BHP", "CBA"))
+
+
+async def test_two_analyses_at_once_never_call_the_model_at_the_same_time():
+    # Calling the real pipeline from two threads at once crashes the whole server (a segfault).
+    inside = 0
+    peak = 0
+    guard = threading.Lock()
+
+    def slow_classifier(sentences):
+        nonlocal inside, peak
+        with guard:
+            inside += 1
+            peak = max(peak, inside)
+        time.sleep(0.05)
+        with guard:
+            inside -= 1
+        return fake_classifier(sentences)
+
+    engine = FinbertEngine(classifier=slow_classifier)
+    news = "BHP shares rose after a strong quarter. BHP said output fell in Chile."
+    results = await asyncio.gather(*(engine.analyze(news, holdings("BHP")) for _ in range(3)))
+    assert peak == 1
+    assert all(r.per_holding[0].relevant for r in results)
