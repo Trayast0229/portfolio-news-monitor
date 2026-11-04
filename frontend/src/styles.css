@@ -794,11 +794,17 @@ textarea {
   color: var(--muted);
 }
 
+/* The detail card is a third of the page, so the weight always gets its own line
+   under the ticker; on one line it squeezed the ticker under the weight. */
 .holding-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.125rem 1rem;
   align-items: baseline;
+}
+
+.holding-weight {
+  grid-row: 2;
 }
 
 .holding-id {
@@ -1023,13 +1029,5 @@ textarea {
   .card,
   .history {
     padding: 1rem;
-  }
-
-  .holding-head {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .holding-weight {
-    grid-row: 2;
   }
 }
