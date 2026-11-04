@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**現在的階段是部署上線前的準備**（HANDOFF.md 第 6 節「上線前必做」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正都已 commit；**速率限制做完但還沒 commit**，這次對話要先修好 `/code-review` 找到的幾項再 commit。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**現在的階段是部署上線前的準備**（HANDOFF.md 第 6 節「上線前必做」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正、速率限制都已 commit。**下一步是選主機**。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -6,17 +6,13 @@
 
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認使用者的前後端是否在執行。沒有的話請使用者用 VS Code 的 Start app 任務啟動，或照 HANDOFF.md 第 5 節啟動。
-2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時，工作區含未 commit 的速率限制：後端 219、前端 79）。
-3. 用 `git status --short` 看未 commit 的改動：**應該只有速率限制的檔案**（`backend/app/limits.py`、`backend/app/main.py`、`backend/tests/test_limits.py`、`backend/tests/test_rate_limits.py`、`backend/.env.example`、`README.md`、`.claude/skills/verify/features/analyze.md`），這是刻意留著的，不要捨棄。用 `git log origin/main..HEAD --oneline` 看還沒 push 的 commit（上次結束時：3 個，CORS、喚醒中畫面、FinBERT 修正），使用者說「push」才上傳。
-4. 用繁體中文向使用者簡短回報狀態，確認在 `main`（`git branch --show-current`），提醒可以刪掉已合併的 `redesign` 與 `backup-before-r1` 分支（若還在），然後照下面「目前進度」繼續速率限制的修正。
+2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時：後端 225、前端 79）。
+3. 用 `git status --short` 看有沒有未 commit 的改動（上次結束時沒有）。有的話先問使用者，不要捨棄。用 `git log origin/main..HEAD --oneline` 看還沒 push 的 commit（上次結束時：4 個，CORS、喚醒中畫面、FinBERT 修正、速率限制），使用者說「push」才上傳。
+4. 用繁體中文向使用者簡短回報狀態，確認在 `main`（`git branch --show-current`），然後照下面「目前進度」繼續。
 
 目前進度（2026-11-04）：
-- 速率限制的設計、測試與驗證都在 HANDOFF.md 第 6 節「上線前必做」的「速率限制」。`/code-review` 找到 9 項候選、都還沒驗證，使用者同意的處理（細節同一處）：
-  - 先重現再修：(1) 上線忘了設 `TRUSTED_PROXY_HOPS` 時所有訪客共用一份額度、程式不提醒；(2) 前端 `lookUpName` 被擋（429）時仍每 3 秒重試、沒有上限，把額度越用越多。
-  - 順手修：(3) 503 忙碌回覆補 `Retry-After`；(4) 被伺服器拒絕的請求（503／422／500）不要算進額度；(5) 限制與排隊不要在 module 載入和 lifespan 各建一次。
-  - (6)–(9) 已記在「已知但不修」。
-  - 每一項照 tdd 流程：使用者輸入 `/pstack:tdd 修速率限制第 N 項`；Claude 先寫會失敗的測試並引用失敗內容，再修。後端行為改動要用真的 uvicorn 驗證（HANDOFF 第 7 節有同時多個請求、`--no-proxy-headers` 的做法）。
-  - 全部修完、使用者說「commit」後，把速率限制存成一個 commit（FinBERT 修正已經是另一個 commit）。之後剩「選主機」：FinBERT 約需 1–2 GB 記憶體、要能長時間執行；確定主機後設定 `VITE_API_URL`、`ALLOWED_ORIGINS`、`TRUSTED_PROXY_HOPS`。
+- 速率限制已完成並 commit（設計、驗證、`/code-review` 9 項的處理都在 HANDOFF.md 第 6 節「上線前必做」的「速率限制」；不修的記在「已知但不修」）。
+- 下一步是「選主機」：FinBERT 約需 1–2 GB 記憶體、要能長時間執行，主機的請求時間上限要夠長。確定主機後設定 `VITE_API_URL`、`ALLOWED_ORIGINS`、`TRUSTED_PROXY_HOPS`（uvicorn 不要設 `FORWARDED_ALLOW_IPS=*`，README 有寫）。各家方案要先查證再給建議。
 - UI 改版已完成、合併回 `main` 並 push。全分支 blast-radius、`/code-review low`、兩次 thermo-nuclear review、Codex UI 審查（U1、U2）都已處理（見 HANDOFF 第 6 節「UI 改版」）。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。

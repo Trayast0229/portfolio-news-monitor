@@ -1,8 +1,8 @@
 # 交接文件：Portfolio News Monitor（澳股持股組合新聞監測器）
 
-最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
+最後更新：2026-11-04。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制做到一半、還沒 commit**（2026-11-04，工作區裡的 `backend/app/limits.py`、`main.py` 等，見第 6 節「上線前必做」的「速率限制」），下一步是修完 `/code-review` 找到的幾項再 commit；之後是選主機。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign`（已合併）與 `backup-before-r1`（R1 改寫歷史的備份）分支都已經用不到，提醒使用者可以 `git branch -d redesign` 與 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制也已完成並 commit**（2026-11-04，見第 6 節「上線前必做」的「速率限制」）。「上線前必做」只剩選主機。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign` 與 `backup-before-r1` 分支已刪除（2026-11-04）。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -15,7 +15,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 已 commit 的程式 200 個 pytest 通過；工作區加上未 commit 的速率限制共 219 個 |
+| 後端（FastAPI）| 完成，225 個 pytest 通過 |
 | 前端（Vite + React + TS）| 完成，79 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
@@ -161,6 +161,9 @@ README.md
 - `cdp.mjs` 的兩個訊息問題（R6 修正後 `/code-review low` 找到，使用者 2026-11-03 決定先不修，只影響開發工具出錯時）：`waitFor()` 到期前最後一次檢查只剩幾毫秒時，會報「no reply from Chrome … hung or crashed」，而不是自己的「timed out … waiting for …」；連線關閉後再呼叫 `send()`，WebSocket 照標準默默丟掉訊息、不報錯，要等滿 30 秒才報「no reply」，而不是馬上說連線已關。
 - 用鍵盤點歷史抽屜裡的紀錄卡片後，抽屜收起、被點的按鈕跟著消失，焦點掉回頁面開頭（UI 改版的 thermo-nuclear review 找到，使用者 2026-11-04 決定不修；只靠 React 行為推論，沒在瀏覽器實測）。要修就在 `openHistory()` 收起時把焦點移回 `.history-toggle`。
 - 速率限制的 `/code-review` 候選 (6)–(9)（2026-11-04，使用者同意不修，都沒驗證過）：「同時最多 2 個分析」也把 Claude 算進去（上線版不開 Claude）；一直換 IP（例如 IPv6）可繞過每個 IP 的限制，每個新 IP 也多佔一點記憶體直到清理（IP 計次本來的極限，全站同時上限仍保護主機）；網站掛在子路徑（uvicorn `--root-path`）下時 `request.url.path` 對不到，限制失效（本專案不這樣用）；清理舊紀錄與每次計數的效能不是最好（以本站流量感覺不到）。
+- 速率限制第 1 項的警告可能說錯（2026-11-04 blast-radius 找到，使用者決定不修）：主機若把 uvicorn 的 `FORWARDED_ALLOW_IPS` 設成代理的位址，uvicorn 已經換成訪客 IP、大家其實分開計次，但 `X-Forwarded-For` 標頭還在，log 仍會警告「count every visitor as <訪客 IP>」（真 uvicorn 預設信任 127.0.0.1 時實測）。照著設 `TRUSTED_PROXY_HOPS=1` 也取到同一個 IP，不會出錯。要修就只在連線來源的 IP 不在 `X-Forwarded-For` 裡時才警告。
+- 速率限制第 2 項只重現一半（2026-11-04，使用者決定不修）：`/api/tickers` 被擋（429）時，`lookUpName` 每個失敗的查詢確實每 3 秒重試、打字時每個字各一個迴圈（真後端＋真 `lookUpName`，B／BH／BHP 60 秒內 60 次 429）；但被擋的請求不算額度，封鎖不會延長，額度恢復時每個迴圈只用 1 次就停（120 次裡用 3 次）。要修就讓 `api.ts` 的錯誤帶狀態碼與 `Retry-After`，`lookUpName` 照它等。
+- 速率限制第 4 項的取捨（2026-11-04 blast-radius 找到，使用者同意不修）：格式錯誤的請求現在不算額度、可以無限送，伺服器每次都讀完內容才拒絕（真 uvicorn 實測 10 MB 的錯誤請求每次約 12 毫秒，代價主要是頻寬，主機代理通常限制請求大小）；出錯（500）的請求也退回額度，找到「一定會讓伺服器出錯」的網址就能不限次數讓伺服器去抓（目前沒有已知的這種網址）。第 5 項之後 `test_api` 共用同一個排隊 semaphore，它只在有人必須等時綁定事件迴圈，以後若有測試讓排隊滿到要等，下一個測試會報「bound to a different event loop」。
 
 **Codex 檢查找到、待修**（2026-11-03 由 Codex 多代理檢查找出，Claude 用真實程式全部重跑確認。嚴重度與順序由使用者同意。依建議順序列出）
 - **C5【低】數字很多的長句，FinBERT 看不到公司名稱**：`finbert_engine.py` 的 `_focus()` 用空白分詞數字數，模型上限是 512 個 WordPiece token。104 個字、90 個金額連成一句時有 1,098 個 token，`BHP` 被截掉，真 FinBERT 給 91% 中立（單獨那句是 94% 看好）。真實新聞很少這樣寫。
@@ -212,17 +215,18 @@ Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/code
 - **（已完成，2026-11-04）前後端分開部署的網址與 CORS**：使用者比較「分開部署（前端放靜態主機、後端放能跑 Python 的主機）」與「同一個服務（FastAPI 也送前端）」後選分開，理由是免費後端睡著時頁面仍能馬上打開。Vercel 這類 serverless 放不下 FinBERT（PyTorch＋模型太大、要常駐、要 1–2 GB 記憶體），上線版又不開 Claude，所以後端一定要放能長時間執行的主機。做法：前端 `api.ts` 的 `apiUrl()` 在建置時讀 `VITE_API_URL`，沒設就維持相對路徑（開發代理、`/verify` 不變）；後端 `main.py` 的 `cors_origins()` 讀 `ALLOWED_ORIGINS`（逗號分隔的完整網址），`*` 或沒有 `https://` 的值會讓伺服器拒絕啟動，只允許 GET、POST 與 `Content-Type`，沒設就不啟用 CORS。實作時找到：Starlette 用 `exception_handler(Exception)` 回的 500 不經過任何 middleware，沒有 CORS 標頭，跨站時瀏覽器會藏起回應、訪客只看到「Can't reach the analysis server」→ 改成 `@app.middleware("http")` 的 `unexpected_error`，CORS 在它之後加（後加的包在外層）。用真的 uvicorn 確認請求中途斷線不會產生假的錯誤紀錄。驗證：`/verify` 後端設 `ALLOWED_ORIGINS=http://localhost:5175`，正式版用 `VITE_API_URL=http://localhost:8100` 建置後在 5175 與 5177 各開 `vite preview`：5175 分析、公司名稱、Fetch 都正常且直接打 8100；5177 被瀏覽器擋下。測試：`tests/test_cors.py`（10 個）、`api.test.ts` 的 `apiUrl`（2 個）。README 有「Hosting the frontend and backend on different sites」一節，兩個 `.env.example` 有說明。
 - **（已完成，2026-11-04）後端喚醒中的畫面**：分開部署後，免費後端睡著時頁面照樣打得開，原本查公司名稱失敗會顯示「Not in ASX list」、畫面沒有任何提示。做法：`lib/history.ts` 的 `namesFromSearch()` 把「查回來沒有這個代號」記成 `null`（後端搜尋一定把完全相同的代號排第一，所以沒出現就是不在清單），`tickerNote()` 分三種：有名稱、`null` 顯示「Not in ASX list」、還沒查到（查詢中或失敗、背景每 3 秒重試）顯示「Checking…」。`api.ts` 的 `watchHealth(onStatus, onWaking, …)` 在第一次健康檢查 3 秒還沒成功時呼叫 `onWaking(true)`，成功後 `onWaking(false)`；`EnginePicker` 在 Analyze 上方顯示「Waking up the analysis server. The first visit can take up to a minute.」，開發模式加上 `BACKEND_HINT`。Analyze 不鎖，因為睡著的主機會讓請求排隊。測試 10 個。驗證：寫了一個會睡覺的假主機（擋在 `/verify` 後端前），用正式版畫面測「前 15 秒連不上」與「請求卡 20 秒才回」兩種，3 秒時出現提示與「Checking…」，醒來後提示消失、名稱自動補上，`ZZZZ` 顯示「Not in ASX list」，分析正常。
 - **（已完成，2026-11-04）FinBERT 同時分析會崩潰**：做速率限制時用真的伺服器發現，兩個以上分析同時進來，後端程序直接 segfault（exit 139）、所有連線中斷，上一個 commit 的程式也一樣（Mac 上重現，Linux 主機未測，不賭）。原因：`FinbertEngine._lock` 只保護載入模型，`asyncio.to_thread` 讓多個執行緒同時呼叫 transformers pipeline。修法：`_run_lock` 讓呼叫模型一次一個（先 `_load()` 再拿鎖，兩把鎖不會同時持有）。測試 `test_two_analyses_at_once_never_call_the_model_at_the_same_time`（假模型記錄同時呼叫數，修前 3、修後 1）；真伺服器 2 個與 5 個同時都 200、伺服器沒掛。
-- **（進行中，未 commit）速率限制**：使用者核准的計畫與做法：
+- **（已完成，2026-11-04）速率限制**：使用者核准的計畫與做法：
   - 每個 IP：`/api/analyze` 與 `/api/article` 每分鐘 10、每小時 60；`/api/tickers` 每分鐘 120；`/api/health` 不限。超過回 429、`Retry-After`、訊息「Too many requests. Try again in a minute.」（每小時上限時寫幾分鐘）。全站同時最多 2 個分析，第 3 個排隊最多 20 秒，再不行回 503「The server is busy. Try again in a minute.」。前端不用改（`send()` 本來就顯示後端的 `detail`）。
-  - `backend/app/limits.py`：`SlidingWindow`（記憶體內滑動時間窗，被拒的請求不記錄，定期清掉沒動靜的 IP）、`proxy_hops()`、`client_ip()`（`TRUSTED_PROXY_HOPS`＝後端前面有幾層代理，從 `X-Forwarded-For` 右邊數，預設 0 時不看這個標頭）、`AnalysisSlots`／`Busy`。`main.py`：`default_limits()`、`rate_limit` middleware（排在錯誤 middleware 與 CORS 裡面，所以 429 帶 CORS 標頭）、`/api/analyze` 用 `analysis_slots.take()`，限制與排隊在 lifespan 每次啟動重建（semaphore 綁定事件迴圈）。只適用單一後端程序，README 有寫。
-  - 測試：`tests/test_limits.py`（12）、`tests/test_rate_limits.py`（7，用 `importlib.reload(main)` 重建 app）。驗證：真 uvicorn＋真 FinBERT，偽造 `X-Forwarded-For` 在 hops=0 時被忽略、hops=1 時只取最右邊；第 11 次 429 帶 `Retry-After: 60` 與 CORS；瀏覽器連按 11 次 Analyze 第 11 次顯示訊息。
+  - `backend/app/limits.py`：`SlidingWindow`（記憶體內滑動時間窗，被拒的請求不記錄，定期清掉沒動靜的 IP）、`proxy_hops()`、`client_ip()`（`TRUSTED_PROXY_HOPS`＝後端前面有幾層代理，從 `X-Forwarded-For` 右邊數，預設 0 時不看這個標頭）、`AnalysisSlots`／`Busy`。`main.py`：`default_limits()`、`rate_limit` middleware（排在錯誤 middleware 與 CORS 裡面，所以 429 帶 CORS 標頭）、`/api/analyze` 用 `analysis_slots.take()`，限制與排隊在 module 載入時建一次（semaphore 只在有人必須等時才綁定事件迴圈，伺服器只有一個迴圈）。只適用單一後端程序，README 有寫。
+  - 測試：`tests/test_limits.py`（13）、`tests/test_rate_limits.py`（12，用 `importlib.reload(main)` 重建 app）；`test_api.py` 的 fixture 每個測試重設額度。驗證：真 uvicorn＋真 FinBERT，偽造 `X-Forwarded-For` 在 hops=0 時被忽略、hops=1 時只取最右邊；第 11 次 429 帶 `Retry-After: 60` 與 CORS；瀏覽器連按 11 次 Analyze 第 11 次顯示訊息。
   - 注意：uvicorn 0.54 預設 `--proxy-headers`、只信任 127.0.0.1 來的 `X-Forwarded-For`，本機用 curl 測偽造標頭時會被 uvicorn 改寫訪客 IP，要加 `--no-proxy-headers` 才像上線環境；上線不要設 `FORWARDED_ALLOW_IPS=*`（uvicorn 會信最左邊、可偽造），README 有寫。
-  - **`/code-review`（2026-11-04）找到 9 項候選、都沒驗證過，使用者同意的處理**：先重現再修 (1)(2)，順手修 (3)(4)(5)，(6)–(9) 記到「已知但不修」：
-    1. 上線忘了設 `TRUSTED_PROXY_HOPS` 時，所有訪客共用代理的 IP、一起被擋，程式不會提醒 → 建議收到 `X-Forwarded-For` 但 hops=0 時在 log 警告一次。
-    2. 前端 `lib/history.ts` 的 `lookUpName` 失敗就每 3 秒重試、沒有上限，429 也照試；打字時每個字的查詢失敗都會開一個重試迴圈，額度一恢復就被重試吃掉 → 被擋時照 `Retry-After` 再試或退避。
-    3. 503 忙碌沒有 `Retry-After`（429 有）。
-    4. 被伺服器拒絕的請求（503、422、500）也算進額度 → 只在真的有跑時計次。
-    5. 限制與排隊在 module 載入和 lifespan 各建一次，看不出用的是哪一份。
+  - `/code-review`（2026-11-04）找到 9 項候選，處理結果：
+    1. **已修**：上線忘了設 `TRUSTED_PROXY_HOPS` 時，所有訪客共用代理的 IP 與同一份額度（真 uvicorn `--no-proxy-headers` 重現：訪客 A 用完 10 次，訪客 B 第一次就 429，log 沒提醒）。`rate_limit` 第一次收到 `X-Forwarded-For` 但 hops=0 時在 log 警告一次（`app.state.warned_about_proxy`）。blast-radius：300 組隨機請求新舊版狀態碼與計次完全相同，只多一行 log；可能說錯的情況記在「已知但不修」。
+    2. **不修**：只重現一半，見「已知但不修」。
+    3. **已修**：503 忙碌加 `Retry-After: 60`。
+    4. **已修**：請求先計次（同時送很多也擠不過上限：真 uvicorn 同時 15 個抓文章 → 10 個 422、5 個 429），出錯、回 5xx、或格式錯誤（`invalid_request` 設 `request.state.invalid`）時用 `SlidingWindow.refund()` 退回；抓文章失敗的 `ArticleError` 422 仍算。blast-radius：200 組隨機結果序列新舊版各自符合模型（舊版全算、新版只算成功的），全部成功時兩版相同。
+    5. **已修**：限制與排隊只在 module 載入時建一次，lifespan 不再重建。真 uvicorn＋真 FinBERT 同時 5 個分析全部 200。
+    6–9. 記在「已知但不修」。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。
 - 若之後上線版要開 Claude：後端要自己加每個引擎的總時間上限（目前 Claude 最壞約 4 分鐘，前端 2 分鐘放棄後後端仍在付費），並在 Anthropic 後台設每月費用上限。
 

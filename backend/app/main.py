@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import os
 import threading
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from .asx import resolve, search
 from .engines.base import Engine, EngineError
 from .engines.claude_engine import ClaudeEngine
 from .engines.finbert_engine import FinbertEngine
+from .limits import AnalysisSlots, Busy, SlidingWindow, client_ip, proxy_hops
 from .models import (
     AnalyzeRequest,
     AnalyzeResponse,
@@ -33,6 +35,16 @@ log = logging.getLogger("portfolio-news-monitor")
 
 def default_engines() -> dict[str, Engine]:
     return {"claude": ClaudeEngine(), "finbert": FinbertEngine()}
+
+
+# Per visitor. Analyze runs FinBERT and article fetches pages for the visitor; ticker
+# search runs on every keystroke, so it gets more room. The health check isn't limited.
+def default_limits() -> dict[str, SlidingWindow]:
+    return {
+        "/api/analyze": SlidingWindow([(10, 60), (60, 3600)]),
+        "/api/article": SlidingWindow([(10, 60), (60, 3600)]),
+        "/api/tickers": SlidingWindow([(120, 60)]),
+    }
 
 
 @asynccontextmanager
@@ -73,6 +85,52 @@ def cors_origins(raw: str | None) -> list[str]:
 
 
 app = FastAPI(title="Portfolio News Monitor", lifespan=lifespan)
+# One set per server process. The slots' semaphore only ties itself to an event loop
+# once a request has to wait, and the server runs a single loop.
+app.state.limits = default_limits()
+app.state.analysis_slots = AnalysisSlots()
+app.state.proxy_hops = proxy_hops(os.getenv("TRUSTED_PROXY_HOPS"))
+app.state.warned_about_proxy = False
+
+
+# Registered before the error middleware and CORS, so both wrap it and a 429 reaches
+# a frontend on another site with its reason intact.
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    window = request.app.state.limits.get(request.url.path)
+    if window is None or request.method == "OPTIONS":
+        return await call_next(request)
+    peer = request.client.host if request.client else None
+    forwarded_for = request.headers.get("x-forwarded-for")
+    state = request.app.state
+    if forwarded_for and not state.proxy_hops and not state.warned_about_proxy:
+        # Without the setting every visitor counts as the proxy's address and shares one quota.
+        state.warned_about_proxy = True
+        log.warning(
+            "Requests carry X-Forwarded-For but TRUSTED_PROXY_HOPS is 0, so rate limits count every "
+            "visitor as %s. Set TRUSTED_PROXY_HOPS to the number of proxies in front of the backend.",
+            peer,
+        )
+    visitor = client_ip(forwarded_for, peer, state.proxy_hops)
+    wait = window.hit(visitor)
+    if wait is not None:
+        minutes = math.ceil(wait / 60)
+        when = "in a minute" if minutes <= 1 else f"in {minutes} minutes"
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"Too many requests. Try again {when}."},
+            headers={"Retry-After": str(math.ceil(wait))},
+        )
+    # Counted up front so a burst can't slip past the limit, then given back when the
+    # request never ran: it was invalid, the server was busy, or it crashed.
+    try:
+        response = await call_next(request)
+    except Exception:
+        window.refund(visitor)
+        raise
+    if response.status_code >= 500 or getattr(request.state, "invalid", False):
+        window.refund(visitor)
+    return response
 
 
 # Without this, a crash returns plain text and the frontend can't tell it apart
@@ -92,6 +150,7 @@ async def unexpected_error(request: Request, call_next):
 # FastAPI's own handler echoes each rejected value back, and JSON can't write 1e309 or NaN.
 @app.exception_handler(RequestValidationError)
 async def invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
+    request.state.invalid = True  # nothing ran, so it doesn't count toward the rate limit
     errors = [{key: value for key, value in error.items() if key != "input"} for error in exc.errors()]
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
@@ -130,7 +189,13 @@ async def analyze(body: AnalyzeRequest, request: Request) -> AnalyzeResponse:
     weights, adjusted = normalize_weights(body.holdings)
     holdings = resolve(body.holdings, weights)
     engines = request.app.state.engines
-    results = await asyncio.gather(*(_run(name, engines[name], body.news, holdings) for name in body.engines))
+    try:
+        async with request.app.state.analysis_slots.take():
+            results = await asyncio.gather(*(_run(name, engines[name], body.news, holdings) for name in body.engines))
+    except Busy:
+        raise HTTPException(
+            status_code=503, detail="The server is busy. Try again in a minute.", headers={"Retry-After": "60"}
+        ) from None
     return AnalyzeResponse(weights_adjusted=adjusted, results=list(results))
 
 

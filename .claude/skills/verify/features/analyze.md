@@ -31,6 +31,8 @@ Preconditions:
 
 ## Gotchas
 
+- The backend allows 10 analyses a minute per visitor, and every journey drives it from the same address. A session that runs more than 10 analyses within a minute gets `Too many requests. Try again in a minute.` in `.engine-card p.notice-error`; wait a minute or relaunch rather than reading it as a bug.
+
 - `Analyze` is disabled and reads `Analyzing…` while busy. Wait on `.result[aria-busy="false"]`, not on the button text.
 - The news box needs at least 50 characters or the form shows an error instead of calling the backend.
 - The FinBERT `Not related` view also has a `.result .notice` starting `FinBERT only counts companies the article names`.

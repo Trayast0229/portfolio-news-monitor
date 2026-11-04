@@ -38,6 +38,7 @@ def client():
         "finbert": StubEngine("finbert", bearish_bhp),
         "claude": StubEngine("claude", error=EngineError("Claude isn't set up.")),
     }
+    app.state.limits = main.default_limits()  # each test starts with a full quota
     with TestClient(app) as c:
         yield c
     del app.state.engines

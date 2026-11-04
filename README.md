@@ -96,6 +96,17 @@ runs somewhere that can run Python. Two settings connect them:
 start if a value isn't a full address like `https://example.com`, and it never accepts `*`. Leave both unset for local
 development. CORS only stops other websites from calling the API inside a visitor's browser; it doesn't stop scripts.
 
+### Rate limits
+
+Each visitor may run 10 analyses and 10 article fetches a minute (60 an hour each) and 120 ticker searches a minute;
+more get a `429` with a `Retry-After` header. At most two analyses run at once, and a third waits up to 20 seconds
+before the server answers that it's busy. The counts are kept in memory, so they hold for a single server process.
+
+Behind a hosting proxy every request arrives from the proxy's address, so set `TRUSTED_PROXY_HOPS` to the number of
+proxies in front of the backend (usually `1`); the backend then reads the visitor's address from `X-Forwarded-For`,
+counting from the right so a visitor can't fake it. Don't set uvicorn's `FORWARDED_ALLOW_IPS` to `*`: uvicorn then
+believes the left-most address, which the visitor writes.
+
 ## Tests
 
 ```bash
