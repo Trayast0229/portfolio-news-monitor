@@ -201,6 +201,8 @@ README.md
 
 全分支 blast-radius（2026-11-04）：關鍵事實「伺服器沒說某引擎 `unavailable` 時，送給後端的引擎清單和 `main` 完全相同；不同時只差拿掉 `unavailable` 的引擎」，用真實 `usableEngines()` 跑 80 種組合證明（58 同、22 只差 unavailable、0 例外）。找到兩項並已修：(1) 冷啟動時健康檢查還沒回應、Claude 還能勾，訪客按 Analyze 會看到後端「Add ANTHROPIC_API_KEY to backend/.env」→ `claude_engine.py` 改成「Claude isn't available here. It works when you run the project locally.」，加測試 `test_missing_key_error_is_written_for_visitors`；(2) `watchHealth` 在 FinBERT 載入好後就停止輪詢，本機加 key、重啟後端後 Claude 仍是灰的 → 不改輪詢，開發模式提示加「then reload this page.」。全分支 `/code-review low`（2026-11-04）只找到一項：`EnginePicker.tsx` 自己重寫了一次「哪些引擎算有勾」，改成呼叫 `usableEngines()`，讓打勾的引擎永遠等於實際送出的引擎（行為不變，用無頭 Chrome 確認）。全分支 `/pstack:thermo-nuclear-review`（2026-11-04）沒有中高風險，兩項低風險：(1) 伺服器上兩個引擎都 `unavailable` 時，選項都灰了卻顯示「Choose at least one engine.」→ 改成 `lib/engines.ts` 的 `engineProblem()`（3 個測試），全部不能用時回「No engine is available right now. Try again later.」；(2) 鍵盤焦點問題，使用者決定不修，記在「已知但不修」。
 
+Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/codex-ui-review/`）：兩項新回歸，Claude 用 git 重新解出的 `main` 副本（5176）全部重跑確認。U2【中】窄螢幕按 Tab 先到 FinBERT／Analyze 再倒跳回新聞欄（DOM 順序是持股、標題、引擎、新聞）→ **已修**：`App.tsx` 把 `EnginePicker` 移到新聞卡後面，桌面位置由 grid 決定不變（用無頭 Chrome 確認 6 張卡片位置與修改前相同）；桌面 Tab 順序因此是持股 → 新聞 → 右上引擎（填表順序）。U1【低～中】視窗 1025–1090px 時明細卡的代號與「30% of portfolio」重疊（每 5px 量一次確認範圍）→ 待修，建議明細卡每列一律分兩行。
+
 每步都跑前端全部測試（第 5 步後 64 個）＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
 
 **上線前必做**（2026-11-03 與使用者討論。這些不是 bug，部署時再做）

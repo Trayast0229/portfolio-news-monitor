@@ -184,15 +184,6 @@ export default function App() {
           <p className="muted">Paste a news story and see whether it's good or bad for your ASX portfolio.</p>
         </div>
 
-        <EnginePicker
-          engines={engines}
-          status={status}
-          onToggle={toggleEngine}
-          error={error}
-          loading={loading}
-          onAnalyze={run}
-        />
-
         <section className="card news">
           <label htmlFor="news">News story</label>
           <div className="article-link">
@@ -252,6 +243,16 @@ export default function App() {
             paste their text instead.
           </p>
         </section>
+
+        {/* After the story in the DOM so Tab follows holdings -> story -> engines; the grid places it top right. */}
+        <EnginePicker
+          engines={engines}
+          status={status}
+          onToggle={toggleEngine}
+          error={error}
+          loading={loading}
+          onAnalyze={run}
+        />
 
         <ResultPanel response={shown?.response ?? null} news={shown?.news ?? ""} loading={loading} />
       </main>
