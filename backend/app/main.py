@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .aggregate import aggregate, normalize_weights
@@ -53,14 +54,39 @@ def _preload(engine: FinbertEngine) -> None:
         log.exception("FinBERT preload failed")
 
 
+def cors_origins(raw: str | None) -> list[str]:
+    """Parses ALLOWED_ORIGINS: the exact sites (scheme and host) allowed to call the API from a browser.
+
+    A value the browser would never send, or "*", stops the server instead of silently
+    blocking the frontend or opening the API to every site.
+    """
+    origins = []
+    for item in (raw or "").split(","):
+        origin = item.strip().rstrip("/")
+        if not origin:
+            continue
+        scheme, sep, host = origin.partition("://")
+        if scheme not in ("http", "https") or not sep or not host or "/" in host:
+            raise ValueError(f"ALLOWED_ORIGINS needs full site addresses such as https://example.com, not {item.strip()!r}.")
+        origins.append(origin)
+    return origins
+
+
 app = FastAPI(title="Portfolio News Monitor", lifespan=lifespan)
 
 
 # Without this, a crash returns plain text and the frontend can't tell it apart
-# from the dev proxy's "backend is off" reply. The traceback is still logged.
-@app.exception_handler(Exception)
-async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=500, content={"detail": "Something went wrong on our side. Try again in a moment."})
+# from the dev proxy's "backend is off" reply. It is middleware rather than an
+# exception handler so the reply passes back through CORS (added below, so it
+# wraps this): Starlette sends a handled 500 from outside every middleware, and
+# the browser would hide a reply that has no CORS header.
+@app.middleware("http")
+async def unexpected_error(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:
+        log.exception("Unexpected error on %s %s", request.method, request.url.path)
+        return JSONResponse(status_code=500, content={"detail": "Something went wrong on our side. Try again in a moment."})
 
 
 # FastAPI's own handler echoes each rejected value back, and JSON can't write 1e309 or NaN.
@@ -68,6 +94,17 @@ async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
 async def invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = [{key: value for key, value in error.items() if key != "input"} for error in exc.errors()]
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
+
+
+# Only needed when the frontend is served from another site; the dev proxy keeps it same-origin.
+# Added last so it wraps the error middleware above.
+if origins := cors_origins(os.getenv("ALLOWED_ORIGINS")):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
 
 
 @app.get("/api/health")

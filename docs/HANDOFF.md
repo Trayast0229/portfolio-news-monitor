@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。**下一步是第 6 節「上線前必做」的其他項目**（部署設定、速率限制、主機），較大的改動先給計畫。本機的 `redesign`（已合併）與 `backup-before-r1`（R1 改寫歷史的備份）分支都已經用不到，提醒使用者可以 `git branch -d redesign` 與 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。**下一步是「後端喚醒中」畫面**（見第 6 節「上線前必做」，使用者同意先做，計畫待給），之後是速率限制、選主機。較大的改動先給計畫。本機的 `redesign`（已合併）與 `backup-before-r1`（R1 改寫歷史的備份）分支都已經用不到，提醒使用者可以 `git branch -d redesign` 與 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -15,8 +15,8 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，189 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，67 個 Vitest 通過，`npm run build` 成功 |
+| 後端（FastAPI）| 完成，199 個 pytest 全部通過 |
+| 前端（Vite + React + TS）| 完成，69 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -208,7 +208,8 @@ Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/code
 **上線前必做**（2026-11-03 與使用者討論。這些不是 bug，部署時再做）
 - **上線版不開 Claude**（使用者決定，避免訪客用掉 API 費用）：伺服器上不設定 `ANTHROPIC_API_KEY`，Claude 狀態就是 `unavailable`，完全不會呼叫。Claude 比較留在本機與 GitHub（README 截圖）展示。程式碼不刪。
 - **（已完成，UI 改版第 5 步）** 改寫上線版看到的開發者提示：`App.tsx` 的 `EngineNote` 叫訪客把 key 加到 `backend/.env`、FinBERT 不可用的提示也要檢查；改成「Claude analysis is available when you run the project locally. See the README.」之類，並考慮上線版預設只勾 FinBERT。FinBERT 判為無關時的提示「…Claude can also pick up indirect effects…」（`ResultPanel.tsx`）也提到 Claude，上線版要改寫。
-- 前後端分開部署時：前端目前靠 Vite 代理 `/api`，上線要設定後端網址（例如環境變數）與 CORS。
+- **（已完成，2026-11-04）前後端分開部署的網址與 CORS**：使用者比較「分開部署（前端放靜態主機、後端放能跑 Python 的主機）」與「同一個服務（FastAPI 也送前端）」後選分開，理由是免費後端睡著時頁面仍能馬上打開。Vercel 這類 serverless 放不下 FinBERT（PyTorch＋模型太大、要常駐、要 1–2 GB 記憶體），上線版又不開 Claude，所以後端一定要放能長時間執行的主機。做法：前端 `api.ts` 的 `apiUrl()` 在建置時讀 `VITE_API_URL`，沒設就維持相對路徑（開發代理、`/verify` 不變）；後端 `main.py` 的 `cors_origins()` 讀 `ALLOWED_ORIGINS`（逗號分隔的完整網址），`*` 或沒有 `https://` 的值會讓伺服器拒絕啟動，只允許 GET、POST 與 `Content-Type`，沒設就不啟用 CORS。實作時找到：Starlette 用 `exception_handler(Exception)` 回的 500 不經過任何 middleware，沒有 CORS 標頭，跨站時瀏覽器會藏起回應、訪客只看到「Can't reach the analysis server」→ 改成 `@app.middleware("http")` 的 `unexpected_error`，CORS 在它之後加（後加的包在外層）。用真的 uvicorn 確認請求中途斷線不會產生假的錯誤紀錄。驗證：`/verify` 後端設 `ALLOWED_ORIGINS=http://localhost:5175`，正式版用 `VITE_API_URL=http://localhost:8100` 建置後在 5175 與 5177 各開 `vite preview`：5175 分析、公司名稱、Fetch 都正常且直接打 8100；5177 被瀏覽器擋下。測試：`tests/test_cors.py`（10 個）、`api.test.ts` 的 `apiUrl`（2 個）。README 有「Hosting the frontend and backend on different sites」一節，兩個 `.env.example` 有說明。
+- **（下一步）後端喚醒中的畫面**：分開部署後，免費後端睡著時頁面照樣打得開，但查公司名稱失敗會顯示「Not in ASX list」、分析會等很久或顯示連不上。要讓健康檢查連不上時顯示喚醒中的提示、公司名稱查不到時不要說成不在清單裡、醒來後自動恢復。先給計畫。
 - 速率限制：`/api/article` 會替訪客抓網頁、`/api/analyze` 會跑 FinBERT，都要限制次數。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。
 - 若之後上線版要開 Claude：後端要自己加每個引擎的總時間上限（目前 Claude 最壞約 4 分鐘，前端 2 分鐘放棄後後端仍在付費），並在 Anthropic 後台設每月費用上限。

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchArticle, searchTickers, watchHealth } from "./api";
+import { apiUrl, fetchArticle, searchTickers, watchHealth } from "./api";
 
 describe("requests", () => {
   afterEach(() => {
@@ -83,5 +83,17 @@ describe("engine status", () => {
     fail();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(check).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("apiUrl", () => {
+  it("keeps the path relative when no backend address is set, so the dev proxy handles it", () => {
+    expect(apiUrl("/api/health", undefined)).toBe("/api/health");
+    expect(apiUrl("/api/health", "")).toBe("/api/health");
+  });
+
+  it("sends requests to the backend's own site when the frontend is hosted elsewhere", () => {
+    expect(apiUrl("/api/health", "https://pnm-api.example.com")).toBe("https://pnm-api.example.com/api/health");
+    expect(apiUrl("/api/tickers?q=BHP", "https://pnm-api.example.com/")).toBe("https://pnm-api.example.com/api/tickers?q=BHP");
   });
 });

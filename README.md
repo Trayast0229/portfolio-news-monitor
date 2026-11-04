@@ -82,6 +82,20 @@ Create an API key at [console.anthropic.com](https://console.anthropic.com), put
 `ANTHROPIC_API_KEY=...`, and restart the backend. Without a key the app works with FinBERT only. The default model is
 `claude-opus-5-5`; set `CLAUDE_MODEL` to use a different one.
 
+### Hosting the frontend and backend on different sites
+
+The frontend is a static site (`npm run build` writes `frontend/dist/`), so it can go on a static host while the backend
+runs somewhere that can run Python. Two settings connect them:
+
+| Setting | Where | Example |
+|---|---|---|
+| `VITE_API_URL` | frontend, when you run `npm run build` | `https://portfolio-news-api.onrender.com` |
+| `ALLOWED_ORIGINS` | backend environment | `https://portfolio-news.pages.dev` |
+
+`ALLOWED_ORIGINS` lists the exact sites (comma-separated) that browsers may call the API from. The backend refuses to
+start if a value isn't a full address like `https://example.com`, and it never accepts `*`. Leave both unset for local
+development. CORS only stops other websites from calling the API inside a visitor's browser; it doesn't stop scripts.
+
 ## Tests
 
 ```bash

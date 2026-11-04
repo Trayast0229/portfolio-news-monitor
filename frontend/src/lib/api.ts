@@ -60,6 +60,14 @@ export const ENGINE_NAMES: Record<EngineName, string> = { claude: "Claude", finb
 const TIMEOUT_MS = 30_000;
 const ANALYZE_TIMEOUT_MS = 2 * 60_000;
 
+// Where the backend lives when the frontend is hosted on another site (set at build time).
+// Unset in development, so requests stay relative and go through the Vite proxy.
+const API_BASE: string | undefined = import.meta.env.VITE_API_URL;
+
+export function apiUrl(path: string, base: string | undefined): string {
+  return base ? base.replace(/\/+$/, "") + path : path;
+}
+
 // Visitors to the live site can't start the backend, so the port hint is for development only.
 const BACKEND_HINT = import.meta.env.DEV ? " In development, make sure the backend is running on port 8000." : "";
 
@@ -89,7 +97,7 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = TIME
 async function send<T>(path: string, init: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    res = await fetch(apiUrl(path, API_BASE), init);
   } catch {
     throw new Error(`Can't reach the analysis server. Check your connection and try again.${BACKEND_HINT}`);
   }
