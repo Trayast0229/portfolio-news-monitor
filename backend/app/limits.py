@@ -24,12 +24,14 @@ class SlidingWindow:
         self._hits: dict[str, deque[float]] = {}
         self._next_sweep = 0.0
 
-    def hit(self, key: str) -> float | None:
-        """Records a request and returns None, or returns how many seconds to wait when over a limit.
+    def hit(self, key: str, now: float | None = None) -> float | None:
+        """Records a request at `now` (the clock by default) and returns None, or returns how many
+        seconds to wait when over a limit.
 
         A refused request isn't recorded, so retrying early doesn't push the wait further out.
         """
-        now = self.clock()
+        if now is None:
+            now = self.clock()
         self._sweep(now)
         hits = self._hits.setdefault(key, deque())
         while hits and hits[0] <= now - self._span:
@@ -44,14 +46,14 @@ class SlidingWindow:
         hits.append(now)
         return None
 
-    def refund(self, key: str) -> None:
-        """Takes back one recorded request, for a request the server turned away after all.
+    def refund(self, key: str, at: float) -> None:
+        """Takes back the request recorded at `at`, for one the server turned away after all.
 
-        It drops the newest entry, which may be a later request's when two overlap; the count
-        stays right and the wait can only end a little sooner."""
+        Only that entry goes: a request that ends a minute after it arrived must not free a place
+        taken by a newer one. If the entry has already left the window there is nothing to give back."""
         hits = self._hits.get(key)
-        if hits:
-            hits.pop()
+        if hits and at in hits:
+            hits.remove(at)
 
     def tracked(self) -> int:
         return len(self._hits)

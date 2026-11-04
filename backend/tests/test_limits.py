@@ -128,10 +128,22 @@ async def test_a_waiting_analysis_gives_up_when_the_server_stays_busy():
 
 
 def test_a_refunded_request_frees_its_place():
-    window = SlidingWindow([(2, 60)], Clock())
+    clock = Clock()
+    window = SlidingWindow([(2, 60)], clock)
     window.hit("a")
     window.hit("a")
-    window.refund("a")
+    window.refund("a", clock.now)
     assert window.hit("a") is None
     assert window.hit("a") is not None
-    window.refund("nobody")  # a visitor the sweep already forgot
+    window.refund("nobody", clock.now)  # a visitor the sweep already forgot
+
+
+def test_refunding_a_request_that_already_left_the_window_changes_nothing():
+    clock = Clock()
+    window = SlidingWindow([(1, 60)], clock)
+    old = clock.now
+    window.hit("a")
+    clock.now += 61
+    window.hit("a")
+    window.refund("a", old)
+    assert window.hit("a") is not None

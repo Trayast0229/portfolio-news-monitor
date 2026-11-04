@@ -1,5 +1,7 @@
+import asyncio
 import importlib
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -141,3 +143,54 @@ def test_requests_that_crash_do_not_use_up_the_visitors_quota(client, monkeypatc
     crashing = TestClient(client.app, raise_server_exceptions=False)
     assert {crashing.post("/api/article", json={"url": "https://news.example/a"}).status_code for _ in range(10)} == {500}
     assert crashing.post("/api/article", json={"url": "https://news.example/a"}).status_code == 422
+
+
+def test_a_proxy_that_adds_its_own_forwarded_for_line_still_identifies_the_visitor(client):
+    # Some proxies keep the visitor's X-Forwarded-For line and add another; the address the
+    # proxy saw is in the last line, and the visitor can write anything in the first.
+    client.app.state.proxy_hops = 1
+    codes = [
+        client.post(
+            "/api/analyze",
+            json=BODY,
+            headers=[("X-Forwarded-For", f"198.51.100.{i}"), ("X-Forwarded-For", "203.0.113.5")],
+        ).status_code
+        for i in range(11)
+    ]
+    assert codes == [200] * 10 + [429]
+
+
+def test_turning_away_an_old_request_does_not_free_a_newer_ones_place(client, monkeypatch):
+    # A request is counted when it arrives. One whose body only finishes a minute later and
+    # turns out invalid must give back its own place, not one from the newer minute.
+    async def refuse(url):
+        raise main.ArticleError("That address isn't allowed.")  # a real fetch attempt, so it counts
+
+    monkeypatch.setattr(main, "fetch_article", refuse)
+    clock = [0.0]
+    client.app.state.limits["/api/article"] = SlidingWindow([(10, 60), (60, 3600)], lambda: clock[0])
+
+    async def scenario():
+        reading, finish = asyncio.Event(), asyncio.Event()
+
+        async def slow_invalid_body():
+            yield b'{"url": '
+            reading.set()  # the app is reading the body, so the request has been counted
+            await finish.wait()
+            yield b'""}'
+
+        transport = httpx.ASGITransport(app=client.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            old = asyncio.create_task(
+                c.post("/api/article", content=slow_invalid_body(), headers={"Content-Type": "application/json"})
+            )
+            await reading.wait()
+            clock[0] = 61
+            fetch = {"url": "https://news.example/a"}
+            codes = [(await c.post("/api/article", json=fetch)).status_code for _ in range(10)]
+            finish.set()
+            old_code = (await old).status_code
+            next_code = (await c.post("/api/article", json=fetch)).status_code
+            return codes, old_code, next_code
+
+    assert asyncio.run(scenario()) == ([422] * 10, 422, 429)

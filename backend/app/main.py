@@ -101,7 +101,8 @@ async def rate_limit(request: Request, call_next):
     if window is None or request.method == "OPTIONS":
         return await call_next(request)
     peer = request.client.host if request.client else None
-    forwarded_for = request.headers.get("x-forwarded-for")
+    # A proxy may add its own line instead of extending the visitor's; together they are one list.
+    forwarded_for = ", ".join(request.headers.getlist("x-forwarded-for"))
     state = request.app.state
     if forwarded_for and not state.proxy_hops and not state.warned_about_proxy:
         # Without the setting every visitor counts as the proxy's address and shares one quota.
@@ -112,7 +113,8 @@ async def rate_limit(request: Request, call_next):
             peer,
         )
     visitor = client_ip(forwarded_for, peer, state.proxy_hops)
-    wait = window.hit(visitor)
+    arrived = window.clock()
+    wait = window.hit(visitor, arrived)
     if wait is not None:
         minutes = math.ceil(wait / 60)
         when = "in a minute" if minutes <= 1 else f"in {minutes} minutes"
@@ -126,10 +128,10 @@ async def rate_limit(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception:
-        window.refund(visitor)
+        window.refund(visitor, arrived)
         raise
     if response.status_code >= 500 or getattr(request.state, "invalid", False):
-        window.refund(visitor)
+        window.refund(visitor, arrived)
     return response
 
 

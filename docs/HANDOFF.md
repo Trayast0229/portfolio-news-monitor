@@ -2,7 +2,7 @@
 
 最後更新：2026-11-04。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制也已完成並 commit**（2026-11-04，見第 6 節「上線前必做」的「速率限制」）。「上線前必做」只剩選主機。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign` 與 `backup-before-r1` 分支已刪除（2026-11-04）。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制也已完成並 push**（2026-11-04，見第 6 節「上線前必做」的「速率限制」）；push 後 Codex 審查（編號 L）找到的 L1、L2 已修並 commit。「上線前必做」只剩選主機。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign` 與 `backup-before-r1` 分支已刪除（2026-11-04）。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -15,7 +15,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，225 個 pytest 通過 |
+| 後端（FastAPI）| 完成，228 個 pytest 通過 |
 | 前端（Vite + React + TS）| 完成，79 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
@@ -218,7 +218,7 @@ Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/code
 - **（已完成，2026-11-04）速率限制**：使用者核准的計畫與做法：
   - 每個 IP：`/api/analyze` 與 `/api/article` 每分鐘 10、每小時 60；`/api/tickers` 每分鐘 120；`/api/health` 不限。超過回 429、`Retry-After`、訊息「Too many requests. Try again in a minute.」（每小時上限時寫幾分鐘）。全站同時最多 2 個分析，第 3 個排隊最多 20 秒，再不行回 503「The server is busy. Try again in a minute.」。前端不用改（`send()` 本來就顯示後端的 `detail`）。
   - `backend/app/limits.py`：`SlidingWindow`（記憶體內滑動時間窗，被拒的請求不記錄，定期清掉沒動靜的 IP）、`proxy_hops()`、`client_ip()`（`TRUSTED_PROXY_HOPS`＝後端前面有幾層代理，從 `X-Forwarded-For` 右邊數，預設 0 時不看這個標頭）、`AnalysisSlots`／`Busy`。`main.py`：`default_limits()`、`rate_limit` middleware（排在錯誤 middleware 與 CORS 裡面，所以 429 帶 CORS 標頭）、`/api/analyze` 用 `analysis_slots.take()`，限制與排隊在 module 載入時建一次（semaphore 只在有人必須等時才綁定事件迴圈，伺服器只有一個迴圈）。只適用單一後端程序，README 有寫。
-  - 測試：`tests/test_limits.py`（13）、`tests/test_rate_limits.py`（12，用 `importlib.reload(main)` 重建 app）；`test_api.py` 的 fixture 每個測試重設額度。驗證：真 uvicorn＋真 FinBERT，偽造 `X-Forwarded-For` 在 hops=0 時被忽略、hops=1 時只取最右邊；第 11 次 429 帶 `Retry-After: 60` 與 CORS；瀏覽器連按 11 次 Analyze 第 11 次顯示訊息。
+  - 測試：`tests/test_limits.py`（14）、`tests/test_rate_limits.py`（14，用 `importlib.reload(main)` 重建 app）；`test_api.py` 的 fixture 每個測試重設額度。驗證：真 uvicorn＋真 FinBERT，偽造 `X-Forwarded-For` 在 hops=0 時被忽略、hops=1 時只取最右邊；第 11 次 429 帶 `Retry-After: 60` 與 CORS；瀏覽器連按 11 次 Analyze 第 11 次顯示訊息。
   - 注意：uvicorn 0.54 預設 `--proxy-headers`、只信任 127.0.0.1 來的 `X-Forwarded-For`，本機用 curl 測偽造標頭時會被 uvicorn 改寫訪客 IP，要加 `--no-proxy-headers` 才像上線環境；上線不要設 `FORWARDED_ALLOW_IPS=*`（uvicorn 會信最左邊、可偽造），README 有寫。
   - `/code-review`（2026-11-04）找到 9 項候選，處理結果：
     1. **已修**：上線忘了設 `TRUSTED_PROXY_HOPS` 時，所有訪客共用代理的 IP 與同一份額度（真 uvicorn `--no-proxy-headers` 重現：訪客 A 用完 10 次，訪客 B 第一次就 429，log 沒提醒）。`rate_limit` 第一次收到 `X-Forwarded-For` 但 hops=0 時在 log 警告一次（`app.state.warned_about_proxy`）。blast-radius：300 組隨機請求新舊版狀態碼與計次完全相同，只多一行 log；可能說錯的情況記在「已知但不修」。
@@ -227,6 +227,10 @@ Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/code
     4. **已修**：請求先計次（同時送很多也擠不過上限：真 uvicorn 同時 15 個抓文章 → 10 個 422、5 個 429），出錯、回 5xx、或格式錯誤（`invalid_request` 設 `request.state.invalid`）時用 `SlidingWindow.refund()` 退回；抓文章失敗的 `ArticleError` 422 仍算。blast-radius：200 組隨機結果序列新舊版各自符合模型（舊版全算、新版只算成功的），全部成功時兩版相同。
     5. **已修**：限制與排隊只在 module 載入時建一次，lifespan 不再重建。真 uvicorn＋真 FinBERT 同時 5 個分析全部 200。
     6–9. 記在「已知但不修」。
+  - **Codex 審查（2026-11-04，編號 L，報告在使用者電腦的 `/tmp/codex-limits-review/`）**：範圍是 push 的 4 個 commit（`9896aff..b706467`），兩項，Claude 讀過腳本後用真 uvicorn 全部重跑確認，都已修：
+    - L2【中】有些代理（例如 HAProxy 的做法）不接在原本的 `X-Forwarded-For` 後面，而是另加一行；後端只讀第一行，訪客改寫第一行就換到新額度（真 uvicorn＋真代理：額度用完後 10 次都 200）。`rate_limit` 改用 `", ".join(request.headers.getlist(...))` 照順序合併所有行（HTTP 標準的合併規則），修後 10 次都 429。blast-radius：零行或一行時 300 組隨機請求與 `b706467` 完全相同。
+    - L1【Codex 評高，Claude 重評低】`refund()` 拿掉的是最新一筆、不是那個請求自己的：請求內容送一半掛超過一分鐘、新的一分鐘用完 10 次後再讓它變成 422，就退掉新的一筆，同一分鐘抓文章 19 次（真 uvicorn、真等 61 秒）。模擬 20 種策略：每分鐘最多 20、每小時平均不超過 60，所以評低。修法：middleware 記下 `arrived`，`hit(visitor, arrived)`、`refund(visitor, arrived)` 只拿掉那個時間點的那一筆（已被清掉就不動）。blast-radius：3000 種隨機交錯，舊版 13 次超過上限、新版 0 次。
+    - Codex 另外提到 `watchHealth` 停止後仍呼叫 `onStatus({})`，是改動前就有的行為，不處理。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。
 - 若之後上線版要開 Claude：後端要自己加每個引擎的總時間上限（目前 Claude 最壞約 4 分鐘，前端 2 分鐘放棄後後端仍在付費），並在 Anthropic 後台設每月費用上限。
 
