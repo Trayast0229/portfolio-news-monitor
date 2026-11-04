@@ -6,6 +6,10 @@ Most sentiment tools tell you whether an article sounds positive. This one asks 
 companies I own and how much of each, does this story help or hurt me?* It scores every holding, drops the ones the
 story doesn't touch, and rolls the rest into one 0–100 reading on a gauge.
 
+**Try it live: [portfolio-news-monitor.pages.dev](https://portfolio-news-monitor.pages.dev)**. The live site runs
+FinBERT only; Claude works when you run the project yourself. The analysis server sleeps when nobody has used it for a
+while, so the first visit can take up to a minute.
+
 ![Claude and FinBERT side by side on a CommBank story](docs/screenshot-light.jpg)
 
 ## Two engines, side by side

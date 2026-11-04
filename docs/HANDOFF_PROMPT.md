@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**現在的階段是部署上線前的準備**（HANDOFF.md 第 6 節「上線前必做」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正、速率限制都已 commit。**下一步是部署**（後端 Hugging Face Spaces、前端 Cloudflare Pages）。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**網站已上線**（HANDOFF.md 第 6 節「上線前必做」的「部署」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正、速率限制、部署（後端 Hugging Face Spaces、前端 Cloudflare Pages）都已完成。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -7,12 +7,12 @@
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認使用者的前後端是否在執行。沒有的話請使用者用 VS Code 的 Start app 任務啟動，或照 HANDOFF.md 第 5 節啟動。
 2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時：後端 228、前端 79）。
-3. 用 `git status --short` 看有沒有未 commit 的改動（上次結束時沒有）。有的話先問使用者，不要捨棄。用 `git log origin/main..HEAD --oneline` 看還沒 push 的 commit（上次結束時：1 個，Codex L1、L2 的修正），使用者說「push」才上傳。
+3. 用 `git status --short` 看有沒有未 commit 的改動（上次結束時沒有）。有的話先問使用者，不要捨棄。用 `git log origin/main..HEAD --oneline` 看還沒 push 的 commit（上次結束時：1 個，README 線上網址與部署完成的文件），使用者說「push」才上傳。
 4. 用繁體中文向使用者簡短回報狀態，確認在 `main`（`git branch --show-current`），然後照下面「目前進度」繼續。
 
 目前進度（2026-11-04）：
 - 速率限制已完成並 push，Codex 審查（編號 L，C、R、U、L 都用過了）的 L1、L2 已修並 commit（設計、驗證、`/code-review` 9 項與 L1、L2 的處理都在 HANDOFF.md 第 6 節「上線前必做」的「速率限制」；不修的記在「已知但不修」）。
-- 部署進行中（使用者選擇後端 Hugging Face Spaces、前端 Cloudflare Pages）：4 個階段與目前做到哪裡，在 HANDOFF.md 第 6 節「上線前必做」的「部署」。每階段做完就停下來等使用者。HF 的設定、價格會變，有疑問先查官方文件再說。
+- 部署已完成（2026-11-04）：前端 https://portfolio-news-monitor.pages.dev （Cloudflare Pages，`main` push 就自動建置）、後端 `https://trayast0229-portfolio-news-monitor.hf.space`（Hugging Face Spaces，`TRUSTED_PROXY_HOPS=1`）。無頭 Chrome 跑過線上網站，全部正常。**還沒測**：Space 閒置 48 小時睡著後，打開網站能不能叫醒；使用者說要測時再做。設定與介面細節在 HANDOFF.md 第 6 節「上線前必做」的「部署」。HF、Cloudflare 的設定、價格會變，有疑問先查官方文件；使用者是初學者，平台設定要給逐步、可照做的說明，每步做完就停下來等（HF 設定時曾把整段 `NAME = 值` 貼進名稱欄、把 `<帳號>` 的角括號留著）。
 - UI 改版已完成、合併回 `main` 並 push。全分支 blast-radius、`/code-review low`、兩次 thermo-nuclear review、Codex UI 審查（U1、U2）都已處理（見 HANDOFF 第 6 節「UI 改版」）。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。
