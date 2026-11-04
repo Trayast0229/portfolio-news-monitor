@@ -78,11 +78,58 @@ describe("engine status", () => {
     vi.useFakeTimers();
     let fail!: () => void;
     const check = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = () => reject(new Error("down")))));
-    const stop = watchHealth(() => {}, check, 3000);
+    const stop = watchHealth(() => {}, () => {}, check, 3000);
     stop(); // the page closed (or React's StrictMode remounted it) before the backend answered
     fail();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(check).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("watchHealth waking notice", () => {
+  afterEach(() => vi.useRealTimers());
+  const healthy = { engines: { claude: "unavailable", finbert: "ready" } } as const;
+
+  it("says the server is waking up when the first check hasn't answered after a few seconds", async () => {
+    vi.useFakeTimers();
+    let answer!: () => void;
+    const check = vi.fn(() => new Promise<typeof healthy>((resolve) => (answer = () => resolve(healthy))));
+    const waking: boolean[] = [];
+    const stop = watchHealth(() => {}, (w) => waking.push(w), check, 3000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(waking).toEqual([true]);
+    answer();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(waking).toEqual([true, false]);
+    stop();
+  });
+
+  it("keeps saying so while the checks fail", async () => {
+    vi.useFakeTimers();
+    const check = vi.fn().mockRejectedValue(new Error("down"));
+    const waking: boolean[] = [];
+    const stop = watchHealth(() => {}, (w) => waking.push(w), check, 3000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(waking).toEqual([true]);
+    stop();
+  });
+
+  it("never mentions it when the server answers quickly", async () => {
+    vi.useFakeTimers();
+    const waking: boolean[] = [];
+    const stop = watchHealth(() => {}, (w) => waking.push(w), vi.fn().mockResolvedValue(healthy), 3000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(waking.filter(Boolean)).toEqual([]);
+    stop();
+  });
+
+  it("stays quiet after the page stops watching", async () => {
+    vi.useFakeTimers();
+    const waking: boolean[] = [];
+    const stop = watchHealth(() => {}, (w) => waking.push(w), () => new Promise<never>(() => {}), 3000);
+    stop();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(waking).toEqual([]);
   });
 });
 

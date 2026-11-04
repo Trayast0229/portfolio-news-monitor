@@ -49,6 +49,7 @@ export default function App() {
   const [fetchNote, setFetchNote] = useState<string | null>(null);
   const [engines, setEngines] = useState<EngineName[]>(loadEngines);
   const [status, setStatus] = useState<Partial<Record<EngineName, EngineStatus>>>({});
+  const [waking, setWaking] = useState(false);
   // The result on screen and the story it's about, which may differ from the text box by now.
   const [shown, setShown] = useState<{ news: string; response: AnalyzeResponse } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -68,7 +69,7 @@ export default function App() {
   useEffect(() => saveHoldings(holdings), [holdings]);
   useEffect(() => saveEngines(engines), [engines]);
 
-  useEffect(() => watchHealth(setStatus), []);
+  useEffect(() => watchHealth(setStatus, setWaking), []);
 
   function toggleEngine(name: EngineName) {
     setEngines((prev) => (prev.includes(name) ? prev.filter((e) => e !== name) : [...prev, name]));
@@ -248,6 +249,7 @@ export default function App() {
         <EnginePicker
           engines={engines}
           status={status}
+          waking={waking}
           onToggle={toggleEngine}
           error={error}
           loading={loading}

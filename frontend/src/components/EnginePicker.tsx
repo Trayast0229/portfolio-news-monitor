@@ -1,4 +1,4 @@
-import { ENGINE_NAMES, type EngineName, type EngineStatus } from "../lib/api";
+import { BACKEND_HINT, ENGINE_NAMES, type EngineName, type EngineStatus } from "../lib/api";
 import { isUsable, usableEngines } from "../lib/engines";
 import { Bolt } from "./Bolt";
 
@@ -15,13 +15,14 @@ const UNAVAILABLE_HINTS: Record<EngineName, string> = {
 interface Props {
   engines: EngineName[];
   status: Partial<Record<EngineName, EngineStatus>>;
+  waking: boolean; // the server hasn't answered its first health check after a few seconds
   onToggle: (name: EngineName) => void;
   error: string | null;
   loading: boolean;
   onAnalyze: () => void;
 }
 
-export function EnginePicker({ engines, status, onToggle, error, loading, onAnalyze }: Props) {
+export function EnginePicker({ engines, status, waking, onToggle, error, loading, onAnalyze }: Props) {
   const names = Object.keys(ENGINE_NAMES) as EngineName[];
   const chosen = usableEngines(engines, status);
   return (
@@ -52,6 +53,11 @@ export function EnginePicker({ engines, status, onToggle, error, loading, onAnal
         {chosen.length === 2 && <p className="muted small">Both engines run side by side so you can compare them.</p>}
       </fieldset>
 
+      {waking && (
+        <p className="notice small" role="status">
+          Waking up the analysis server. The first visit can take up to a minute.{BACKEND_HINT}
+        </p>
+      )}
       {error && (
         <p className="notice notice-error" role="alert">
           {error}

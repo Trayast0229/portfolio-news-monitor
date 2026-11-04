@@ -250,7 +250,7 @@ code {
   gap: 1rem;
 }
 
-.engine-card .notice-error {
+.engine-card > .notice {
   margin: 0;
 }
 

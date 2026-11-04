@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EngineName, HoldingInput, PortfolioResult } from "./api";
-import { historyScore, lookUpName, mergeHistory, storySource, tickersToLookUp } from "./history";
+import { historyScore, lookUpName, mergeHistory, namesFromSearch, storySource, tickerNote, tickersToLookUp } from "./history";
 import type { HistoryEntry } from "./storage";
 
 function result(engine: EngineName, patch: Partial<PortfolioResult> = {}): PortfolioResult {
@@ -127,6 +127,38 @@ describe("lookUpName", () => {
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(found).toHaveBeenCalledWith(bhp);
+  });
+});
+
+describe("tickerNote", () => {
+  const names = { BHP: "BHP Group Limited", ZZZZ: null };
+
+  it("shows the company name once the lookup found it", () => {
+    expect(tickerNote("BHP", names)).toBe("BHP Group Limited");
+  });
+
+  it("says a ticker isn't listed only after a lookup came back without it", () => {
+    expect(tickerNote("ZZZZ", names)).toBe("Not in ASX list");
+  });
+
+  it("says it is still checking while the lookup hasn't answered, e.g. while the server wakes up", () => {
+    expect(tickerNote("CBA", names)).toBe("Checking…");
+  });
+
+  it("shows nothing for an empty row", () => {
+    expect(tickerNote(" ", names)).toBe("");
+  });
+});
+
+describe("namesFromSearch", () => {
+  it("records every match and marks the searched ticker as not listed when it isn't among them", () => {
+    const matches = [{ ticker: "ZIP", name: "Zip Co Limited" }];
+    expect(namesFromSearch("ZZZZ", matches)).toEqual({ ZIP: "Zip Co Limited", ZZZZ: null });
+  });
+
+  it("keeps the searched ticker's name when the search found it", () => {
+    const matches = [{ ticker: "BHP", name: "BHP Group Limited" }];
+    expect(namesFromSearch("BHP", matches)).toEqual({ BHP: "BHP Group Limited" });
   });
 });
 

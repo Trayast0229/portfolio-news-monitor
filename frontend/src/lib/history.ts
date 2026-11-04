@@ -40,6 +40,27 @@ export function storySource(
   return fetched && fetched.url === url.trim() && fetched.text === news ? fetched.url : undefined;
 }
 
+// Company names by ticker: null once a lookup came back without that ticker.
+export type CompanyNames = Record<string, string | null>;
+
+// The backend lists an exact ticker match first, so a reply without the searched
+// ticker means it isn't on the ASX list.
+export function namesFromSearch(query: string, matches: TickerMatch[]): CompanyNames {
+  const names: CompanyNames = Object.fromEntries(matches.map((m) => [m.ticker, m.name]));
+  const ticker = query.trim();
+  if (ticker && !(ticker in names)) names[ticker] = null;
+  return names;
+}
+
+// The line under a ticker. A lookup that hasn't answered, for example while the
+// server wakes up, isn't proof the ticker is missing.
+export function tickerNote(ticker: string, names: CompanyNames): string {
+  const t = ticker.trim();
+  if (!t) return "";
+  if (names[t] === undefined) return "Checking…";
+  return names[t] ?? "Not in ASX list";
+}
+
 // Looks up one ticker's company name. A failed lookup, for example while the
 // backend is still starting, is tried again every few seconds until it works.
 export function lookUpName(

@@ -69,7 +69,7 @@ export function apiUrl(path: string, base: string | undefined): string {
 }
 
 // Visitors to the live site can't start the backend, so the port hint is for development only.
-const BACKEND_HINT = import.meta.env.DEV ? " In development, make sure the backend is running on port 8000." : "";
+export const BACKEND_HINT = import.meta.env.DEV ? " In development, make sure the backend is running on port 8000." : "";
 
 async function request<T>(path: string, init: RequestInit = {}, timeoutMs = TIMEOUT_MS): Promise<T> {
   const ctrl = new AbortController();
@@ -123,21 +123,33 @@ export function getHealth() {
   return request<{ engines: Record<EngineName, EngineStatus> }>("/api/health");
 }
 
+// A free host that went to sleep holds the first request until it wakes, which can take a minute.
+const WAKING_AFTER_MS = 3000;
+
 // Checks engine status every few seconds until the backend is up and FinBERT
-// has finished loading. Returns a function that stops checking.
+// has finished loading. Says the server is waking up when the first answer takes
+// more than a few seconds. Returns a function that stops checking.
 export function watchHealth(
   onStatus: (engines: Partial<Record<EngineName, EngineStatus>>) => void,
+  onWaking: (waking: boolean) => void = () => {},
   check = getHealth,
   retryMs = 3000,
 ): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false; // a check already on its way must not schedule another
+  let slow: ReturnType<typeof setTimeout> | undefined = setTimeout(() => onWaking(true), WAKING_AFTER_MS);
   const again = () => {
     if (!stopped) timer = setTimeout(poll, retryMs);
   };
   const poll = () =>
     check()
       .then((h) => {
+        if (stopped) return;
+        if (slow !== undefined) {
+          clearTimeout(slow);
+          slow = undefined;
+          onWaking(false);
+        }
         onStatus(h.engines);
         if (h.engines.finbert === "not_loaded") again();
       })
@@ -149,6 +161,7 @@ export function watchHealth(
   return () => {
     stopped = true;
     clearTimeout(timer);
+    clearTimeout(slow);
   };
 }
 

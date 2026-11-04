@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { searchTickers, type HoldingInput, type TickerMatch } from "../lib/api";
-import { lookUpName, tickersToLookUp } from "../lib/history";
+import { lookUpName, namesFromSearch, tickerNote, tickersToLookUp, type CompanyNames } from "../lib/history";
 import { weightTotal } from "../lib/holdings";
 
 interface Props {
@@ -11,20 +11,20 @@ interface Props {
 const MAX_HOLDINGS = 30;
 
 export function HoldingsEditor({ holdings, onChange }: Props) {
-  const [names, setNames] = useState<Record<string, string>>({});
+  const [names, setNames] = useState<CompanyNames>({});
   const [suggestions, setSuggestions] = useState<TickerMatch[]>([]);
   const abort = useRef<AbortController | null>(null);
   const requested = useRef(new Set<string>());
 
-  const remember = (matches: TickerMatch[]) =>
-    setNames((prev) => ({ ...prev, ...Object.fromEntries(matches.map((m) => [m.ticker, m.name])) }));
+  const remember = (query: string) => (matches: TickerMatch[]) =>
+    setNames((prev) => ({ ...prev, ...namesFromSearch(query, matches) }));
 
   // Look up names for holdings set from outside, such as storage or a history entry.
   const tickers = holdings.map((h) => h.ticker).join(",");
   useEffect(() => {
     tickersToLookUp(holdings, requested.current).forEach((t) => {
       requested.current.add(t);
-      lookUpName(t, searchTickers, remember);
+      lookUpName(t, searchTickers, remember(t));
     });
   }, [tickers]);
 
@@ -37,10 +37,10 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
     searchTickers(q, ctrl.signal)
       .then((m) => {
         setSuggestions(m);
-        remember(m);
+        remember(q.trim())(m);
       })
       .catch(() => {
-        if (!ctrl.signal.aborted) lookUpName(q.trim(), searchTickers, remember);
+        if (!ctrl.signal.aborted) lookUpName(q.trim(), searchTickers, remember(q.trim()));
       });
   }
 
@@ -82,7 +82,7 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
                   lookup(ticker);
                 }}
               />
-              <span className="ticker-name muted">{names[h.ticker] ?? (h.ticker ? "Not in ASX list" : "")}</span>
+              <span className="ticker-name muted">{tickerNote(h.ticker, names)}</span>
             </div>
             <div className="weight-cell">
               <input
