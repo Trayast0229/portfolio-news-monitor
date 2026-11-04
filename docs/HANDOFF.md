@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，6 步全部做完並 commit（2026-11-04）。使用者決定全部設計完再一起除錯，所以全分支 `/pstack:blast-radius`、`/code-review low`、`/pstack:thermo-nuclear-review` 都已做完並修好（見第 6 節「UI 改版」），**下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`**；使用者說「push」才上傳（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。**下一步是第 6 節「上線前必做」的其他項目**（部署設定、速率限制、主機），較大的改動先給計畫。本機的 `redesign`（已合併）與 `backup-before-r1`（R1 改寫歷史的備份）分支都已經用不到，提醒使用者可以 `git branch -d redesign` 與 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -174,7 +174,7 @@ README.md
 
 已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。原列第 7 項「`Content-Length` 不是數字就回 500」在真實連線不會發生：httpx 0.28.1 底層的 h11 會先拒絕非數字的值（變成 `RemoteProtocolError`，已顯示成網站沒回應），重複的相同值（`38, 38`）會合併成一個數字；只有測試用的 `MockTransport` 會跳過這層檢查（2026-11-03 用本機 socket 伺服器實測）。
 
-**UI 改版（6 步都完成，待全分支檢查。`redesign` 分支。使用者 2026-11-03 核准計畫並說「可以開始」）**
+**UI 改版（已完成，2026-11-04 合併回 `main` 並 push。使用者 2026-11-03 核准計畫並說「可以開始」）**
 
 使用者想在上線前重新設計畫面，設計語言參照 Ramp（使用者給的 Mobbin 連結要登入，403 打不開；ramp.com 只讀得到文字。現在的風格是照 Claude 對 Ramp 的印象：米白底、白卡片、細邊框、大量留白、粗而緊的大標題、數字放大。使用者想更貼近時可以請他貼截圖）。版面草圖在 `docs/design/layout-draft.svg`（藍色標籤是說明，不是畫面），開始前先看一次。
 

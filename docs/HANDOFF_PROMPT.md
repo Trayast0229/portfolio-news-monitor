@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯與兩輪 Codex 檢查都處理完、已 push。**現在的階段是「UI 改版」的最後檢查**：照 Ramp 的設計語言重新設計畫面的 6 步都已做完並 commit 在 `redesign` 分支，接下來是全分支檢查、修正與合併。改版做完之後是**部署上線**，一律照上線標準判斷。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成並 push（2026-11-04）。**下一個階段是部署上線**：HANDOFF.md 第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機），一律照上線標準判斷。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -7,18 +7,18 @@
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認使用者的前後端是否在執行。沒有的話請使用者用 VS Code 的 Start app 任務啟動，或照 HANDOFF.md 第 5 節啟動。
 2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時：後端 189、前端 67）。
-3. 用 `git status --short` 確認沒有未 commit 的改動，用 `git log origin/main..HEAD --oneline` 看有哪些還沒 push 的 commit：`main` 應該是 0 個；`redesign` 分支上的改版 commit 本來就還沒 push（合併回 `main` 後使用者說「push」才上傳）。
-4. 用繁體中文向使用者簡短回報狀態，確認在 `redesign` 分支（`git branch --show-current`），提醒可以刪掉 `backup-before-r1` 分支（若還在），然後繼續 UI 改版的下一步。
+3. 用 `git status --short` 確認沒有未 commit 的改動，用 `git log origin/main..HEAD --oneline` 確認沒有還沒 push 的 commit（上次結束時：0 個）。
+4. 用繁體中文向使用者簡短回報狀態，確認在 `main`（`git branch --show-current`），提醒可以刪掉已合併的 `redesign` 與 `backup-before-r1` 分支（若還在），然後討論「上線前必做」從哪一項開始。較大的改動先給計畫，使用者說「可以開始」再動手。
 
-目前進度（2026-11-03）：
-- 已在 `redesign` 分支，6 步都已 commit。全分支 blast-radius、`/code-review low`、thermo-nuclear review 都已做完並修好；Codex UI 審查找到的 U1、U2 都已修（見 HANDOFF 第 6 節「UI 改版」）。下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`。下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`。
+目前進度（2026-11-04）：
+- UI 改版已完成、合併回 `main` 並 push。全分支 blast-radius、`/code-review low`、兩次 thermo-nuclear review、Codex UI 審查（U1、U2）都已處理（見 HANDOFF 第 6 節「UI 改版」）。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。
 - Mobbin 的參考連結要登入打不開，風格是照對 Ramp 的印象做的；使用者想更貼近時請他貼截圖。
-- 改版做完、使用者在瀏覽器確認後，合併回 `main`；使用者說「push」才上傳。之後回到第 6 節「上線前必做」的其他項目。
+- 接下來回到第 6 節「上線前必做」的其他項目。
 
 工作流程（HANDOFF.md 第 9 節有完整說明）：
-- 改版每一步：Claude 實作 → 跑全部測試與 build → 用 `/verify` 跑一次並看截圖 → 給使用者瀏覽器測試步驟（要做什麼、對的樣子、不對的樣子）→ 停下來等使用者看外觀 → 使用者說「commit」就存一個 commit。每一步做完就停下來等，不要自己往下走。使用者決定**全部設計完再除錯**：每步不跑 blast-radius，6 步做完後對整個 `redesign` 分支跑一次 `/pstack:blast-radius` 與 `/code-review low`，修完、使用者在瀏覽器完整測過再合併。
+- 多步驟的工作（例如 UI 改版）：Claude 實作 → 跑全部測試與 build → 用 `/verify` 跑一次並看截圖 → 給使用者瀏覽器測試步驟（要做什麼、對的樣子、不對的樣子）→ 停下來等 → 使用者說「commit」就存一個 commit。每一步做完就停下來等，不要自己往下走。UI 改版時使用者選擇全部做完再一起跑 blast-radius 與 `/code-review low`。
 - 修 bug 時：`/pstack:tdd 修第 N 項：…`。tdd：先寫會失敗的測試並引用失敗內容（要是預期的那種失敗，不是程式出錯），再修，跑全部測試，再用真實程式或真實連線重跑重現腳本。
 - blast-radius：找出改動安全的那一個關鍵事實，用腳本比對新舊版（`git show HEAD:檔案` 存成舊版來比）或真實連線、真實瀏覽器證明，不要只寫推論。
 - 使用者說「commit」時：同一個 commit 裡更新 HANDOFF.md（進度、測試數），檢查沒有本機路徑、金鑰與個人描述後再 commit。commit 前跑一次 `/verify`（純文件改動除外）。
