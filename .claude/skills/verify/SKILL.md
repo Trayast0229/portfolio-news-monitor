@@ -5,7 +5,7 @@ description: Launch a private copy of Portfolio News Monitor (FastAPI backend pl
 
 # Verify Portfolio News Monitor
 
-The user-facing surface is the web page: holdings editor, news box with Fetch, engine toggles, Analyze, the result gauge, and Recent analyses. The backend API (`/api/health`, `/api/tickers`, `/api/article`, `/api/analyze`) sits behind the page. Drive the page. Use `curl` on the API only for checks the page cannot express (status codes, malformed bodies).
+The user-facing surface is the web page: a grid of cards (holdings, headline, engines with Analyze on top; news box with Fetch, the score card and the per-holding card below) and a Recent analyses drawer opened from the header. The backend API (`/api/health`, `/api/tickers`, `/api/article`, `/api/analyze`) sits behind the page. Drive the page. Use `curl` on the API only for checks the page cannot express (status codes, malformed bodies).
 
 The user usually has their own dev servers on :8000 and :5173. Never drive, restart, or stop those. This skill runs its own copy on other ports:
 
@@ -64,18 +64,19 @@ Stable handles in this app:
 | Article link / Fetch | `[aria-label="Article link"]`, `text=Fetch` |
 | News text | `#news` |
 | Samples | `text=Iron ore slides`, `text=CommBank record profit`, `text=CSL cuts guidance` |
-| Engine toggles | `.engine-toggle` buttons with `aria-pressed`, named by their `<strong>` text `FinBERT` / `Claude` |
+| Engine toggles | `.engine-toggle` buttons with `aria-pressed`, named by their `<strong>` text `FinBERT` / `Claude`; an engine the server can't run is `disabled` |
 | Analyze | `text=Analyze` (reads `Analyzing…` while busy) |
 | Form or fetch error | `p.notice-error[role=alert]` |
-| Result | `.result` with `aria-busy`, gauge `.result svg[role=img]` aria-label `Sentiment score N of 100, Label`, `.result .exposure`, `.result .notice` |
+| Score card | `.result` with `aria-busy`, gauge `.result svg[role=img]` aria-label `Sentiment score N of 100, Label`, `.result .exposure`, `.result .notice`, Claude's `.result .summary` |
+| Per-holding card | `.detail`: `.detail .holding` rows, key points, `How this score was worked out`; `.detail .result-empty` before a result or after an engine error |
 | Engine switch (two engines) | `[role=tab]` inside `.engine-switch` |
-| History | `.history li button`, `text=Clear`; saved as `pnm.history` in localStorage |
+| History | `.history-toggle` in the header (hidden when nothing is saved, `aria-expanded`) opens `#history`; then `.history li button`, `text=Clear`; saved as `pnm.history` in localStorage |
 
 The feature map in `features/` lists each user journey with its handles and proof. Read `features/README.md` first.
 
 ## Evidence
 
-Every journey writes to `$TMPDIR/pnm-verify-evidence/<timestamp>-<name>/`: numbered screenshots of the action and the result, plus `result.json` with the values it asserted. Prove the real user path: click and type through the page, never call React setters or test-only endpoints. Capture the state before and after the action, and check side effects too, such as the history entry in localStorage and the row in Recent analyses. Read at least the final screenshot yourself before reporting a pass. The FinBERT model is real; nothing is mocked.
+Every journey writes to `$TMPDIR/pnm-verify-evidence/<timestamp>-<name>/`: numbered screenshots of the action and the result, plus `result.json` with the values it asserted. Prove the real user path: click and type through the page, never call React setters or test-only endpoints. Capture the state before and after the action, and check side effects too, such as the history entry in localStorage and the card in Recent analyses (open the drawer first). Read at least the final screenshot yourself before reporting a pass. The FinBERT model is real; nothing is mocked.
 
 ## Cleanup
 

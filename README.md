@@ -86,7 +86,7 @@ Create an API key at [console.anthropic.com](https://console.anthropic.com), put
 
 ```bash
 cd backend && .venv/bin/pytest     # scoring, ASX matching, both engines (mocked), article fetching (mocked), API
-cd frontend && npm test            # gauge zones, holdings checks, history, skipped-holding notices
+cd frontend && npm test            # gauge zones, holdings checks, history, skipped-holding notices, engine availability
 ```
 
 Backend tests don't download the model or call the API.

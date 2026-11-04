@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，第 1–5 步（風格、版面、歷史紀錄抽屜、閃電元素、上線版提示）已 commit，下一步是第 6 步（收尾）。使用者決定 6 步全部設計完再一起除錯（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，6 步全部做完並 commit（2026-11-04）。使用者決定全部設計完再一起除錯，所以**下一步是對整個 `redesign` 分支（`git diff main...redesign`）跑 `/pstack:blast-radius` 與 `/code-review low`**，修找到的問題，使用者在瀏覽器完整測一輪，再合併回 `main`；使用者說「push」才上傳（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -21,7 +21,7 @@
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
 | 手機版、亮色／暗色模式 | 實測通過，沒有水平捲動 |
-| README（含截圖）| 完成 |
+| README（含截圖）| 完成，截圖已換成改版後的畫面（2026-11-04）|
 | 貼網址抓文章 | 完成。`POST /api/article`，用真實網站實測：ABC News 成功、Reuters 顯示被擋的說明、localhost 被拒 |
 | GitHub | 公開 repo，MIT 授權，已檢查沒有金鑰與個人資訊 |
 | 歷史紀錄 | 同一則新聞＋持股＋引擎只留最新一筆；引擎錯誤顯示「Error」（滑過看訊息），無關顯示「Unrelated」；還原後會補查公司名稱 |
@@ -55,8 +55,10 @@ backend/
   .env                       使用者的 ANTHROPIC_API_KEY（已被 gitignore）
   .env.example
 frontend/
-  src/App.tsx                主畫面、表單驗證、引擎狀態輪詢
-  src/components/            SentimentGauge, ResultPanel, HoldingBreakdown, HoldingsEditor, HistoryList
+  src/App.tsx                主畫面（3 欄 × 2 列卡片）、表單驗證、引擎狀態輪詢、歷史抽屜開關
+  src/components/            SentimentGauge, ResultPanel（指標卡＋明細卡）, HoldingBreakdown, HoldingsEditor,
+                             HistoryList（HistoryToggle＋抽屜）, EnginePicker（引擎＋Analyze）, Bolt（閃電圖示）
+  src/lib/engines.ts(+test)  哪些引擎能用（伺服器回 unavailable 就變灰、不送出）（純函式）
   src/lib/gauge.ts(+test)    儀表盤幾何與分區
   src/lib/api.ts             型別與 fetch
   src/lib/history.ts(+test)  歷史紀錄去重、分數顯示文字、待查公司名稱（純函式）
@@ -65,9 +67,10 @@ frontend/
   src/lib/format.ts          百分比與時間的顯示格式
   src/lib/storage.ts(+test) localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch，讀取時檢查形狀
   src/lib/examples.ts        3 則虛構範例新聞
-  src/styles.css             設計 token、亮暗主題、RWD
+  src/styles.css             設計 token（黃色重點色 --accent）、亮暗主題、grid 版面（1024px 以下一欄）
 docs/
   superpowers/specs/2026-10-21-portfolio-news-monitor-design.md   原始設計與計畫（已核准）
+  design/layout-draft.svg    UI 改版的版面草圖（藍色標籤是說明）
   screenshot-light.jpg / screenshot-dark.jpg
   HANDOFF.md（本檔）/ HANDOFF_PROMPT.md
 README.md
@@ -170,7 +173,7 @@ README.md
 
 已確認沒問題：`::ffff:127.0.0.1`（IPv4-mapped）與帶 scope 的 IPv6 都會被 `is_global` 正確擋下（Python 3.13 實測）；每次轉址都重新檢查位址，`http` 轉 `https`、換網域已有測試；只有標題的頁面會顯示 `NO_TEXT`。原列第 7 項「`Content-Length` 不是數字就回 500」在真實連線不會發生：httpx 0.28.1 底層的 h11 會先拒絕非數字的值（變成 `RemoteProtocolError`，已顯示成網站沒回應），重複的相同值（`38, 38`）會合併成一個數字；只有測試用的 `MockTransport` 會跳過這層檢查（2026-11-03 用本機 socket 伺服器實測）。
 
-**UI 改版（進行中，`redesign` 分支。使用者 2026-11-03 核准計畫並說「可以開始」）**
+**UI 改版（6 步都完成，待全分支檢查。`redesign` 分支。使用者 2026-11-03 核准計畫並說「可以開始」）**
 
 使用者想在上線前重新設計畫面，設計語言參照 Ramp（使用者給的 Mobbin 連結要登入，403 打不開；ramp.com 只讀得到文字。現在的風格是照 Claude 對 Ramp 的印象：米白底、白卡片、細邊框、大量留白、粗而緊的大標題、數字放大。使用者想更貼近時可以請他貼截圖）。版面草圖在 `docs/design/layout-draft.svg`（藍色標籤是說明，不是畫面），開始前先看一次。
 
@@ -193,7 +196,7 @@ README.md
 3. **（已完成）** 歷史紀錄：移到最上面的抽屜，按鈕展開／收起，展開時卡片排列；點一筆會填回表單並收起；Clear 正常。檔案：`HistoryList.tsx`、`App.tsx`、`styles.css`。做法：`HistoryList.tsx` 匯出 `HistoryToggle`（`.history-toggle`，`aria-expanded`、`aria-controls="history"`，沒紀錄時不渲染）與 `HistoryList`（`#history.history`，只在展開且有紀錄時渲染）；展開狀態 `historyOpen` 在 `App.tsx`，點紀錄或 Clear 都會收起。暗色模式的膠囊按鈕是淺色（用 `--ink` 底）。`/verify` 的 `analyze-finbert.mjs` 已改成先按 `.history-toggle` 再讀 `.history li`；`SKILL.md` 與 `features/history.md` 的說明留到第 6 步更新。
 4. **（已完成）** 閃電元素：標題與閃電背景、黃色底線、Analyze 與指標卡的閃電圖示（用第 1 步做好的 `Bolt.tsx`）。做法：「Efficiency」獨立一行加黃色粗底線（`text-decoration`，不用螢光筆底色，因為暗色模式白字壓黃底看不清）；大閃電 `.hero-bolt` 透明度用 `--hero-bolt-opacity`（亮 0.35、暗 0.16），窄螢幕移到左邊文字後面；Analyze 文字前的閃電不影響 `/verify` 的 `text=Analyze`（svg 沒有文字）。
 5. **（已完成）** 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。做法：`lib/engines.ts` 的 `isUsable()`／`usableEngines()`（5 個測試）：狀態是 `unavailable` 才算不能用，健康檢查還沒回應前都算能用；`App.tsx` 的 `run()` 只送能用的引擎，存檔的選擇不改（之後有 key，Claude 會自動回來）。`EnginePicker.tsx`：不能用的引擎按鈕 `disabled`、`aria-pressed=false`，說明換成 `UNAVAILABLE_HINTS`；key 設定與 `pip install` 的提示只在 `import.meta.env.DEV` 顯示。已確認正式版 bundle 裡沒有 `ANTHROPIC_API_KEY`、`pip install`、`backend/.env`、`port 8000`，並用 `vite preview`（`API_URL` 指向 `/verify` 的 8100）在無頭 Chrome 看過正式版畫面。後端 Claude 的「Add ANTHROPIC_API_KEY to backend/.env」錯誤訊息沒改：畫面上選不到 Claude，只有健康檢查還沒回應就按 Analyze、且存檔裡勾著 Claude 時才可能看到，最後的全分支檢查時再確認。
-6. 收尾：更新 `.claude/skills/verify/` 的 `SKILL.md` 與 `features/`（歷史紀錄要先按按鈕才看得到等新的操作方式）、重拍 README 的亮色與暗色截圖（可用 `/verify` 的 Chrome）、更新本檔。
+6. **（已完成）** 收尾：更新 `.claude/skills/verify/` 的 `SKILL.md` 與 `features/`（歷史紀錄要先按按鈕才看得到等新的操作方式）、重拍 README 的亮色與暗色截圖（可用 `/verify` 的 Chrome）、更新本檔。截圖是使用者同意後用 `VERIFY_CLAUDE=1` 跑一次真實 Claude（CommBank 範例，FinBERT 96／Claude 75，選 Claude 分頁），寬 1440、從頂端裁 1280 高（`sips --cropOffset` 會被忽略、從中間裁，改用 `ffmpeg -vf crop=1440:1280:0:0`）。`features/engines.md` 寫了怎麼用 `vite preview`（port 5175）看正式版畫面，`cleanup.sh` 不會關它，要自己關。
 
 每步都跑前端全部測試（第 5 步後 64 個）＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
 
@@ -235,7 +238,7 @@ README.md
 
 ## 8. 參考來源
 
-- 視覺：Stocktwits Sentiment 儀表盤（refero.design）。配色 Dark Mint / Grapefruit / Silver / Night / Cotton，字型 Source Sans 3。
+- 視覺：儀表盤參考 Stocktwits Sentiment（refero.design）。2026-11 UI 改版照 Ramp 的設計語言（米白底、白卡片、細邊框、粗而緊的標題、黃色 `#FFE135` 重點色），字型 Inter。
 - 做法：https://github.com/jordan5226/tw_stock_news_ai_monitor 。借用其 JSON schema、五級情緒與提示詞紀律，沒有借用自動爬新聞。
 
 ## 9. 工作習慣（使用者偏好）

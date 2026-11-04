@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯與兩輪 Codex 檢查都處理完、已 push。**現在的階段是「UI 改版」**：使用者想在上線前照 Ramp 的設計語言重新設計畫面，計畫與所有決定都已核准，使用者說了「可以開始」。改版做完之後是**部署上線**，一律照上線標準判斷。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯與兩輪 Codex 檢查都處理完、已 push。**現在的階段是「UI 改版」的最後檢查**：照 Ramp 的設計語言重新設計畫面的 6 步都已做完並 commit 在 `redesign` 分支，接下來是全分支檢查、修正與合併。改版做完之後是**部署上線**，一律照上線標準判斷。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -11,7 +11,7 @@
 4. 用繁體中文向使用者簡短回報狀態，確認在 `redesign` 分支（`git branch --show-current`），提醒可以刪掉 `backup-before-r1` 分支（若還在），然後繼續 UI 改版的下一步。
 
 目前進度（2026-11-03）：
-- 已在 `redesign` 分支，第 1–5 步（風格、版面、歷史紀錄抽屜、閃電元素、上線版提示）已 commit，下一步是第 6 步（收尾）。
+- 已在 `redesign` 分支，6 步都已 commit。下一步是對整個 `redesign` 分支跑 `/pstack:blast-radius` 與 `/code-review low`，修完、使用者在瀏覽器完整測過，再合併回 `main`。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。
 - Mobbin 的參考連結要登入打不開，風格是照對 Ramp 的印象做的；使用者想更貼近時請他貼截圖。
