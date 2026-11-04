@@ -2,7 +2,7 @@
 
 最後更新：2026-11-04。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制也已完成並 push**（2026-11-04，見第 6 節「上線前必做」的「速率限制」）；push 後 Codex 審查（編號 L）找到的 L1、L2 已修並 commit。「上線前必做」只剩選主機。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign` 與 `backup-before-r1` 分支已刪除（2026-11-04）。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**UI 改版已完成，合併回 `main` 並 push（2026-11-04）**（第 6 節「UI 改版」）。全分支 `/pstack:blast-radius`、`/code-review low`、兩次 `/pstack:thermo-nuclear-review`、Codex UI 審查（U1、U2）都已處理。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。「上線前必做」的前後端分開部署設定（`VITE_API_URL`、`ALLOWED_ORIGINS`）已完成（2026-11-04，使用者選擇前後端分開部署）。「後端喚醒中」畫面也已完成。**速率限制也已完成並 push**（2026-11-04，見第 6 節「上線前必做」的「速率限制」）；push 後 Codex 審查（編號 L）找到的 L1、L2 已修並 commit。「上線前必做」剩部署（後端 Hugging Face Spaces、前端 Cloudflare Pages，進行中）。過程中找到並修好一個原本就有的嚴重 bug：兩個分析同時進來會讓後端崩潰（FinBERT，已 commit）。較大的改動先給計畫。本機的 `redesign` 與 `backup-before-r1` 分支已刪除（2026-11-04）。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -231,6 +231,11 @@ Codex UI 審查（2026-11-04，編號 U，報告在使用者電腦的 `/tmp/code
     - L2【中】有些代理（例如 HAProxy 的做法）不接在原本的 `X-Forwarded-For` 後面，而是另加一行；後端只讀第一行，訪客改寫第一行就換到新額度（真 uvicorn＋真代理：額度用完後 10 次都 200）。`rate_limit` 改用 `", ".join(request.headers.getlist(...))` 照順序合併所有行（HTTP 標準的合併規則），修後 10 次都 429。blast-radius：零行或一行時 300 組隨機請求與 `b706467` 完全相同。
     - L1【Codex 評高，Claude 重評低】`refund()` 拿掉的是最新一筆、不是那個請求自己的：請求內容送一半掛超過一分鐘、新的一分鐘用完 10 次後再讓它變成 422，就退掉新的一筆，同一分鐘抓文章 19 次（真 uvicorn、真等 61 秒）。模擬 20 種策略：每分鐘最多 20、每小時平均不超過 60，所以評低。修法：middleware 記下 `arrived`，`hit(visitor, arrived)`、`refund(visitor, arrived)` 只拿掉那個時間點的那一筆（已被清掉就不動）。blast-radius：3000 種隨機交錯，舊版 13 次超過上限、新版 0 次。
     - Codex 另外提到 `watchHealth` 停止後仍呼叫 `onStatus({})`，是改動前就有的行為，不處理。
+- **（進行中，2026-11-04）部署：後端放 Hugging Face Spaces、前端放 Cloudflare Pages**（使用者選擇）。比較過的主機（2026-11 查證）：HF Spaces Docker 要 PRO（每月 $9，官方文件寫明免費帳號不能建 Docker Space），CPU Basic 硬體免費、2 vCPU／16 GB，閒置會睡著（文件沒寫多久、也沒寫直接打 API 會不會叫醒）；Cloud Run 有免費額度但要綁卡、設定複雜、冷啟動頻繁；Render 免費版 512 MB 放不下 FinBERT、2 GB 要 $25；Fly.io 沒有免費額度、2 GB 約 $13–18。使用者決定：Space 名稱 `portfolio-news-monitor`，不加 `GET /`（Space 頁面會顯示 `{"detail":"Not Found"}`），`main` 上後端一變動就自動部署。
+  - 第 1 階段（Claude，已完成未 commit）：`deploy/huggingface/Dockerfile`（Python 3.13、使用者 1000、CPU 版 PyTorch、建置時把 FinBERT 下載進映像檔、執行時 `HF_HUB_OFFLINE=1`、`uvicorn --port 7860 --no-proxy-headers`）、`deploy/huggingface/README.md`（Space 設定開頭）、`.github/workflows/deploy-backend.yml`（組出 Space 的檔案後用 `hf upload --delete "*"` 上傳；需要 GitHub secret `HF_TOKEN` 與 variable `HF_SPACE`；不用 HF 官方的 hub-sync，因為它照搬整個 repo、Space 設定開頭得放進專案 README）。本機沒有 Docker，改在全新的 Python 3.13 venv 照 Dockerfile 步驟安裝、用空的模型快取下載 FinBERT（418 MB），離線模式啟動後健康檢查 ready、分析 97 分。真正的 Docker 建置要推到 HF 才看得到。
+  - 第 2 階段（使用者）：HF 帳號＋PRO、建 Space（Docker、CPU Basic）、write token 存成 GitHub secret `HF_TOKEN`、GitHub variable `HF_SPACE`、手動跑一次 workflow。
+  - 第 3 階段（Claude）：驗證線上後端（health、分析、429）、用警告 log 和偽造 `X-Forwarded-For` 找出 `TRUSTED_PROXY_HOPS`、測睡著後打 API 能不能叫醒（最大未知數，叫不醒要另想辦法，例如定時 health）。
+  - 第 4 階段：Cloudflare Pages（根目錄 `frontend`、`npm run build`、輸出 `dist`、`VITE_API_URL=https://<帳號>-portfolio-news-monitor.hf.space`），Space 設 `ALLOWED_ORIGINS`，用無頭 Chrome 跑一次真正的網站。
 - 主機：FinBERT 約需 1–2 GB 記憶體，部分免費方案不夠；主機自己的請求時間上限要比前端的 2 分鐘長或至少比正常分析時間長。部署時再查各家方案。
 - 若之後上線版要開 Claude：後端要自己加每個引擎的總時間上限（目前 Claude 最壞約 4 分鐘，前端 2 分鐘放棄後後端仍在付費），並在 Anthropic 後台設每月費用上限。
 

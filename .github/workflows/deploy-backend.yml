@@ -1,0 +1,41 @@
+# Copies the backend to the Hugging Face Space, which then rebuilds it from deploy/huggingface/Dockerfile.
+# Needs the repository secret HF_TOKEN (a Hugging Face token with write access) and the repository
+# variable HF_SPACE (the Space's id, such as username/portfolio-news-monitor).
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/app/**
+      - backend/data/**
+      - backend/pyproject.toml
+      - deploy/huggingface/**
+      - .github/workflows/deploy-backend.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Put the Space's files together
+        run: |
+          mkdir -p space/backend
+          cp deploy/huggingface/README.md deploy/huggingface/Dockerfile space/
+          cp -R backend/app backend/data backend/pyproject.toml space/backend/
+          find space -name __pycache__ -prune -exec rm -rf {} +
+
+      # --delete removes files the Space has but this upload doesn't, so the Space matches main.
+      - name: Upload to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          pipx run --spec "huggingface_hub>=1.0" hf upload "$HF_SPACE" space . \
+            --repo-type space --delete "*" --commit-message "Deploy ${GITHUB_SHA::7} from GitHub"

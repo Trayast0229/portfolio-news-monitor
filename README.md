@@ -89,12 +89,22 @@ runs somewhere that can run Python. Two settings connect them:
 
 | Setting | Where | Example |
 |---|---|---|
-| `VITE_API_URL` | frontend, when you run `npm run build` | `https://portfolio-news-api.onrender.com` |
+| `VITE_API_URL` | frontend, when you run `npm run build` | `https://username-portfolio-news-monitor.hf.space` |
 | `ALLOWED_ORIGINS` | backend environment | `https://portfolio-news.pages.dev` |
 
 `ALLOWED_ORIGINS` lists the exact sites (comma-separated) that browsers may call the API from. The backend refuses to
 start if a value isn't a full address like `https://example.com`, and it never accepts `*`. Leave both unset for local
 development. CORS only stops other websites from calling the API inside a visitor's browser; it doesn't stop scripts.
+
+### Deploying the backend to Hugging Face Spaces
+
+FinBERT needs 1–2 GB of memory and a process that keeps running, which a Hugging Face Docker Space provides.
+`deploy/huggingface/Dockerfile` installs the CPU build of PyTorch and bakes the FinBERT model into the image, so the
+Space starts without downloading it. The `Deploy backend` workflow copies `backend/` and that folder to the Space on
+every push to `main` that touches them, and the Space rebuilds. It needs a repository secret `HF_TOKEN` (a Hugging Face
+token with write access) and a repository variable `HF_SPACE` (for example `username/portfolio-news-monitor`). Set
+`ALLOWED_ORIGINS` and `TRUSTED_PROXY_HOPS` as variables in the Space's settings, and leave `ANTHROPIC_API_KEY` unset
+so the live site never calls Claude.
 
 ### Rate limits
 
@@ -132,6 +142,8 @@ frontend/
   src/components/SentimentGauge.tsx   hand-built SVG gauge
   src/lib/gauge.ts                    gauge geometry
   src/App.tsx
+deploy/huggingface/        Dockerfile and Space README for the backend on Hugging Face Spaces
+.github/workflows/         Deploy backend: copies the backend to the Space on push to main
 ```
 
 ## Design notes

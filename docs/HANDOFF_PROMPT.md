@@ -1,4 +1,4 @@
-你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**現在的階段是部署上線前的準備**（HANDOFF.md 第 6 節「上線前必做」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正、速率限制都已 commit。**下一步是選主機**。
+你要接手一個作品集專案：Portfolio News Monitor（澳股持股組合新聞監測器）。功能都已完成並公開在 GitHub，系統性除錯、兩輪 Codex 檢查、照 Ramp 設計語言的 UI 改版都已完成。**現在的階段是部署上線前的準備**（HANDOFF.md 第 6 節「上線前必做」），一律照上線標準判斷。前後端分開部署的設定、後端喚醒中畫面、FinBERT 同時分析會崩潰的修正、速率限制都已 commit。**下一步是部署**（後端 Hugging Face Spaces、前端 Cloudflare Pages）。
 
 專案位置：這個 repo 的根目錄（portfolio-news-monitor/）
 
@@ -12,7 +12,7 @@
 
 目前進度（2026-11-04）：
 - 速率限制已完成並 push，Codex 審查（編號 L，C、R、U、L 都用過了）的 L1、L2 已修並 commit（設計、驗證、`/code-review` 9 項與 L1、L2 的處理都在 HANDOFF.md 第 6 節「上線前必做」的「速率限制」；不修的記在「已知但不修」）。
-- 下一步是「選主機」：FinBERT 約需 1–2 GB 記憶體、要能長時間執行，主機的請求時間上限要夠長。確定主機後設定 `VITE_API_URL`、`ALLOWED_ORIGINS`、`TRUSTED_PROXY_HOPS`（uvicorn 不要設 `FORWARDED_ALLOW_IPS=*`，README 有寫）。各家方案要先查證再給建議。
+- 部署進行中（使用者選擇後端 Hugging Face Spaces、前端 Cloudflare Pages）：4 個階段與目前做到哪裡，在 HANDOFF.md 第 6 節「上線前必做」的「部署」。每階段做完就停下來等使用者。HF 的設定、價格會變，有疑問先查官方文件再說。
 - UI 改版已完成、合併回 `main` 並 push。全分支 blast-radius、`/code-review low`、兩次 thermo-nuclear review、Codex UI 審查（U1、U2）都已處理（見 HANDOFF 第 6 節「UI 改版」）。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。
