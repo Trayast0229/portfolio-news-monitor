@@ -1,5 +1,5 @@
 import { ENGINE_NAMES, type EngineName, type EngineStatus } from "../lib/api";
-import { isUsable } from "../lib/engines";
+import { isUsable, usableEngines } from "../lib/engines";
 import { Bolt } from "./Bolt";
 
 const ENGINE_HINTS: Record<EngineName, string> = {
@@ -23,7 +23,7 @@ interface Props {
 
 export function EnginePicker({ engines, status, onToggle, error, loading, onAnalyze }: Props) {
   const names = Object.keys(ENGINE_NAMES) as EngineName[];
-  const chosen = names.filter((name) => engines.includes(name) && isUsable(name, status));
+  const chosen = usableEngines(engines, status);
   return (
     <section className="card engine-card">
       <fieldset className="engines">
