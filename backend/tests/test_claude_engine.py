@@ -206,6 +206,18 @@ def test_status_without_key_is_unavailable(monkeypatch):
     assert ClaudeEngine().status() == "unavailable"
 
 
+async def test_missing_key_error_is_written_for_visitors(monkeypatch):
+    # A visitor can tick Claude before the health check answers; the live site has no key.
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    with pytest.raises(EngineError) as caught:
+        await ClaudeEngine().analyze(NEWS, HOLDINGS)
+    message = str(caught.value)
+    assert message.startswith("Claude isn't available")
+    for detail in ("ANTHROPIC_API_KEY", ".env", "restart", "server"):
+        assert detail not in message
+
+
 def test_client_retries_once_so_a_timeout_fails_within_two_minutes(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     client = ClaudeEngine()._get_client()

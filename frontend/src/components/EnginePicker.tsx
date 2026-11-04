@@ -73,8 +73,8 @@ function EngineNote({ name, status, chosen }: { name: EngineName; status?: Engin
   if (name === "claude")
     return (
       <p className="notice small">
-        Claude needs an API key. Add <code>ANTHROPIC_API_KEY</code> to <code>backend/.env</code> and restart the
-        backend. You can get a key at console.anthropic.com.
+        Claude needs an API key. Add <code>ANTHROPIC_API_KEY</code> to <code>backend/.env</code>, restart the
+        backend, then reload this page. You can get a key at console.anthropic.com.
       </p>
     );
   return (
