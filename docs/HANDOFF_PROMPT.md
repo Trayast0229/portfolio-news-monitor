@@ -6,12 +6,12 @@
 
 讀完後請做這些事：
 1. 用 `lsof -ti tcp:8000` 和 `lsof -ti tcp:5173` 確認使用者的前後端是否在執行。沒有的話請使用者用 VS Code 的 Start app 任務啟動，或照 HANDOFF.md 第 5 節啟動。
-2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時：後端 189、前端 64）。
+2. 執行後端 pytest 和前端 npm test，確認全部通過，記下測試數量作為起點（上次結束時：後端 189、前端 67）。
 3. 用 `git status --short` 確認沒有未 commit 的改動，用 `git log origin/main..HEAD --oneline` 看有哪些還沒 push 的 commit：`main` 應該是 0 個；`redesign` 分支上的改版 commit 本來就還沒 push（合併回 `main` 後使用者說「push」才上傳）。
 4. 用繁體中文向使用者簡短回報狀態，確認在 `redesign` 分支（`git branch --show-current`），提醒可以刪掉 `backup-before-r1` 分支（若還在），然後繼續 UI 改版的下一步。
 
 目前進度（2026-11-03）：
-- 已在 `redesign` 分支，6 步都已 commit。全分支 blast-radius 與 `/code-review low` 都已做完並修好。下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`。
+- 已在 `redesign` 分支，6 步都已 commit。全分支 blast-radius、`/code-review low`、thermo-nuclear review 都已做完並修好。下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`。
 - UI 改版共 6 步（細節在 HANDOFF.md 第 6 節「UI 改版」）：1 風格（配色、Inter 字型、黃色主按鈕、Logo 閃電，版面不動）→ 2 版面（3 欄 × 2 列，結果拆成指標卡與明細卡，新的 `EnginePicker.tsx`）→ 3 歷史紀錄抽屜 → 4 閃電元素 → 5 上線版提示（＝上線前必做第一項）→ 6 收尾（`/verify` 說明、README 截圖、HANDOFF）。
 - 已核准的決定：保留暗色模式、字型換 Inter、歷史紀錄預設收起（沒有紀錄時不顯示按鈕）、在 `redesign` 分支做、不設計手機版（窄螢幕只要依序往下排）。標題是「Efficiency drives progress.」（使用者給的「效率使人進步」譯成英文）。
 - Mobbin 的參考連結要登入打不開，風格是照對 Ramp 的印象做的；使用者想更貼近時請他貼截圖。

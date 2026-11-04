@@ -2,7 +2,7 @@
 
 最後更新：2026-11-03。對象：接手這個專案的下一段 Claude Code 對話。
 
-**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，6 步全部做完並 commit（2026-11-04）。使用者決定全部設計完再一起除錯，所以全分支 `/pstack:blast-radius` 與 `/code-review low` 都已做完並修好（見第 6 節「UI 改版」），**下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`**；使用者說「push」才上傳（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
+**接手前先看**：系統性除錯全部完成，所有修正都已 push（2026-11-03，`main` 與 GitHub 同步）。Codex 兩輪檢查找到的 C1–C10、R1–R6 都已處理或列為不修；外部 PR #1（RyanT0306）已審閱並關閉：兩個後端 commit 原樣收進來（C10 的 Claude 格式錯誤重試、FinBERT 沒安裝的提示），`randomUUID` 備案與輪詢停止改寫後收進來，其餘 `main` 已有。**現在在做 UI 改版**（第 6 節「UI 改版」，使用者已核准計畫與所有決定），在 `redesign` 分支上，6 步全部做完並 commit（2026-11-04）。使用者決定全部設計完再一起除錯，所以全分支 `/pstack:blast-radius`、`/code-review low`、`/pstack:thermo-nuclear-review` 都已做完並修好（見第 6 節「UI 改版」），**下一步是使用者在瀏覽器完整測一輪，確認後合併回 `main`**；使用者說「push」才上傳（見第 6 節「UI 改版」的流程）。改版的第 5 步就是「上線前必做」的第一項（開發者提示）。改版做完再回到第 6 節「上線前必做」的其他項目（部署設定、速率限制、主機）。本機的 `backup-before-r1` 分支已經用不到（R1 改寫歷史的備份，push 已成功），提醒使用者可以 `git branch -D backup-before-r1`。可以用 `/verify` 自己在無頭 Chrome 操作網站（見第 7 節）。
 
 ## 1. 這是什麼、為什麼做
 
@@ -16,7 +16,7 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，189 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，64 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，67 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -159,6 +159,7 @@ README.md
 - 標成 `Content-Encoding: deflate` 卻送 raw deflate（沒有 zlib 標頭）的舊伺服器，C1 修正後會顯示「isn't a news page」，以前 httpx 讀得到（已實測）。現代網站幾乎都用 gzip，使用者 2026-11-03 決定不支援。
 - 瀏覽器的 localStorage 寫入失敗（例如空間滿了）時，`addHistory` 每次都從存檔重建清單，這次工作階段先前的紀錄會從畫面上消失（Codex C9，已用模擬的 `setItem` 例外實測）。只存 20 筆，現代瀏覽器很難碰到。
 - `cdp.mjs` 的兩個訊息問題（R6 修正後 `/code-review low` 找到，使用者 2026-11-03 決定先不修，只影響開發工具出錯時）：`waitFor()` 到期前最後一次檢查只剩幾毫秒時，會報「no reply from Chrome … hung or crashed」，而不是自己的「timed out … waiting for …」；連線關閉後再呼叫 `send()`，WebSocket 照標準默默丟掉訊息、不報錯，要等滿 30 秒才報「no reply」，而不是馬上說連線已關。
+- 用鍵盤點歷史抽屜裡的紀錄卡片後，抽屜收起、被點的按鈕跟著消失，焦點掉回頁面開頭（UI 改版的 thermo-nuclear review 找到，使用者 2026-11-04 決定不修；只靠 React 行為推論，沒在瀏覽器實測）。要修就在 `openHistory()` 收起時把焦點移回 `.history-toggle`。
 
 **Codex 檢查找到、待修**（2026-11-03 由 Codex 多代理檢查找出，Claude 用真實程式全部重跑確認。嚴重度與順序由使用者同意。依建議順序列出）
 - **C5【低】數字很多的長句，FinBERT 看不到公司名稱**：`finbert_engine.py` 的 `_focus()` 用空白分詞數字數，模型上限是 512 個 WordPiece token。104 個字、90 個金額連成一句時有 1,098 個 token，`BHP` 被截掉，真 FinBERT 給 91% 中立（單獨那句是 94% 看好）。真實新聞很少這樣寫。
@@ -198,7 +199,7 @@ README.md
 5. **（已完成）** 上線版提示（＝「上線前必做」第一項）：Claude 不可用時選項變灰、不能勾，寫「Available when you run the project locally.」；FinBERT 沒安裝的提示與 `ResultPanel.tsx` 裡提到 Claude 的那句改成訪客看得懂的話；給開發者的細節（key 怎麼設、要跑的指令）只在 `import.meta.env.DEV` 顯示（同 `api.ts` 的 `BACKEND_HINT` 做法）；預設只勾 FinBERT（本來就是）。「引擎不可用就變灰」寫成小函式並加測試。做法：`lib/engines.ts` 的 `isUsable()`／`usableEngines()`（5 個測試）：狀態是 `unavailable` 才算不能用，健康檢查還沒回應前都算能用；`App.tsx` 的 `run()` 只送能用的引擎，存檔的選擇不改（之後有 key，Claude 會自動回來）。`EnginePicker.tsx`：不能用的引擎按鈕 `disabled`、`aria-pressed=false`，說明換成 `UNAVAILABLE_HINTS`；key 設定與 `pip install` 的提示只在 `import.meta.env.DEV` 顯示。已確認正式版 bundle 裡沒有 `ANTHROPIC_API_KEY`、`pip install`、`backend/.env`、`port 8000`，並用 `vite preview`（`API_URL` 指向 `/verify` 的 8100）在無頭 Chrome 看過正式版畫面。後端 Claude 的「Add ANTHROPIC_API_KEY to backend/.env」錯誤訊息沒改：畫面上選不到 Claude，只有健康檢查還沒回應就按 Analyze、且存檔裡勾著 Claude 時才可能看到，最後的全分支檢查時再確認。
 6. **（已完成）** 收尾：更新 `.claude/skills/verify/` 的 `SKILL.md` 與 `features/`（歷史紀錄要先按按鈕才看得到等新的操作方式）、重拍 README 的亮色與暗色截圖（可用 `/verify` 的 Chrome）、更新本檔。截圖是使用者同意後用 `VERIFY_CLAUDE=1` 跑一次真實 Claude（CommBank 範例，FinBERT 96／Claude 75，選 Claude 分頁），寬 1440、從頂端裁 1280 高（`sips --cropOffset` 會被忽略、從中間裁，改用 `ffmpeg -vf crop=1440:1280:0:0`）。`features/engines.md` 寫了怎麼用 `vite preview`（port 5175）看正式版畫面，`cleanup.sh` 不會關它，要自己關。
 
-全分支 blast-radius（2026-11-04）：關鍵事實「伺服器沒說某引擎 `unavailable` 時，送給後端的引擎清單和 `main` 完全相同；不同時只差拿掉 `unavailable` 的引擎」，用真實 `usableEngines()` 跑 80 種組合證明（58 同、22 只差 unavailable、0 例外）。找到兩項並已修：(1) 冷啟動時健康檢查還沒回應、Claude 還能勾，訪客按 Analyze 會看到後端「Add ANTHROPIC_API_KEY to backend/.env」→ `claude_engine.py` 改成「Claude isn't available here. It works when you run the project locally.」，加測試 `test_missing_key_error_is_written_for_visitors`；(2) `watchHealth` 在 FinBERT 載入好後就停止輪詢，本機加 key、重啟後端後 Claude 仍是灰的 → 不改輪詢，開發模式提示加「then reload this page.」。全分支 `/code-review low`（2026-11-04）只找到一項：`EnginePicker.tsx` 自己重寫了一次「哪些引擎算有勾」，改成呼叫 `usableEngines()`，讓打勾的引擎永遠等於實際送出的引擎（行為不變，用無頭 Chrome 確認）。
+全分支 blast-radius（2026-11-04）：關鍵事實「伺服器沒說某引擎 `unavailable` 時，送給後端的引擎清單和 `main` 完全相同；不同時只差拿掉 `unavailable` 的引擎」，用真實 `usableEngines()` 跑 80 種組合證明（58 同、22 只差 unavailable、0 例外）。找到兩項並已修：(1) 冷啟動時健康檢查還沒回應、Claude 還能勾，訪客按 Analyze 會看到後端「Add ANTHROPIC_API_KEY to backend/.env」→ `claude_engine.py` 改成「Claude isn't available here. It works when you run the project locally.」，加測試 `test_missing_key_error_is_written_for_visitors`；(2) `watchHealth` 在 FinBERT 載入好後就停止輪詢，本機加 key、重啟後端後 Claude 仍是灰的 → 不改輪詢，開發模式提示加「then reload this page.」。全分支 `/code-review low`（2026-11-04）只找到一項：`EnginePicker.tsx` 自己重寫了一次「哪些引擎算有勾」，改成呼叫 `usableEngines()`，讓打勾的引擎永遠等於實際送出的引擎（行為不變，用無頭 Chrome 確認）。全分支 `/pstack:thermo-nuclear-review`（2026-11-04）沒有中高風險，兩項低風險：(1) 伺服器上兩個引擎都 `unavailable` 時，選項都灰了卻顯示「Choose at least one engine.」→ 改成 `lib/engines.ts` 的 `engineProblem()`（3 個測試），全部不能用時回「No engine is available right now. Try again later.」；(2) 鍵盤焦點問題，使用者決定不修，記在「已知但不修」。
 
 每步都跑前端全部測試（第 5 步後 64 個）＋`npm run build`、後端 188 個測試，並用 `/verify` 跑一次 `analyze-finbert` 流程與截圖。純樣式改動不寫測試，有新邏輯才補。
 

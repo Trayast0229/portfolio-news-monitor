@@ -13,7 +13,7 @@ import {
   type EngineStatus,
   type HoldingInput,
 } from "./lib/api";
-import { usableEngines } from "./lib/engines";
+import { engineProblem, usableEngines } from "./lib/engines";
 import { EXAMPLES } from "./lib/examples";
 import { storySource } from "./lib/history";
 import { filledHoldings, holdingsProblem } from "./lib/holdings";
@@ -33,12 +33,11 @@ const MAX_NEWS = 20000;
 // Below this width the cards stack in one column (matches styles.css).
 const ONE_COLUMN = "(max-width: 1024px)";
 
-function validate(holdings: HoldingInput[], news: string, engines: EngineName[]): string | null {
+function validate(holdings: HoldingInput[], news: string, engineIssue: string | null): string | null {
   const problem = holdingsProblem(holdings);
   if (problem) return problem;
   if (news.trim().length < MIN_NEWS) return `Paste a longer story. It needs at least ${MIN_NEWS} characters.`;
-  if (!engines.length) return "Choose at least one engine.";
-  return null;
+  return engineIssue;
 }
 
 export default function App() {
@@ -110,7 +109,7 @@ export default function App() {
 
   async function run() {
     const chosen = usableEngines(engines, status);
-    const problem = validate(holdings, news, chosen);
+    const problem = validate(holdings, news, engineProblem(engines, status));
     setError(problem);
     if (problem) return;
     const cleaned = filledHoldings(holdings);

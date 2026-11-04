@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUsable, usableEngines } from "./engines";
+import { engineProblem, isUsable, usableEngines } from "./engines";
 
 describe("isUsable", () => {
   it("turns off an engine the server can't run", () => {
@@ -24,5 +24,23 @@ describe("usableEngines", () => {
 
   it("leaves nothing when only an unusable engine was chosen", () => {
     expect(usableEngines(["claude"], { claude: "unavailable" })).toEqual([]);
+  });
+});
+
+describe("engineProblem", () => {
+  it("asks for an engine when none of the chosen ones can run but another can", () => {
+    expect(engineProblem([], { claude: "unavailable", finbert: "ready" })).toBe("Choose at least one engine.");
+    expect(engineProblem(["claude"], { claude: "unavailable", finbert: "ready" })).toBe("Choose at least one engine.");
+  });
+
+  it("says nothing can run, rather than asking for a choice, when every engine is unavailable", () => {
+    expect(engineProblem(["finbert"], { claude: "unavailable", finbert: "unavailable" })).toBe(
+      "No engine is available right now. Try again later.",
+    );
+  });
+
+  it("is fine when a chosen engine can run", () => {
+    expect(engineProblem(["finbert"], { claude: "unavailable", finbert: "not_loaded" })).toBeNull();
+    expect(engineProblem(["claude"], {})).toBeNull();
   });
 });
